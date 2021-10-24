@@ -69,11 +69,9 @@ module Main =
             |> List.map parser
         Option.sequenceList (commandOptionToInvert textList)
 
-    let numberedCommands (commandList : command list option) = 
-        match commandList with
-        | Some x -> 
-            Some (x |> List.mapi (fun x y -> (x, y)))
-        | None -> None
+    let numberedCommands (commandList : command list) = 
+        commandList
+        |> List.mapi (fun x y -> (x, y))
 
     //Main function should be a recursive function which passes an accumulating DICTIONARY, where on each iteration you add an element to the list which has the current location / command run
     //That dictionary will be indexed by line number run from, and if you hit the same element again then it will all return all the way up to the top with the accumulated list.
@@ -110,22 +108,70 @@ module Main =
         | Some x ->
             match x with 
             |accum, commands, noLoop ->
-                commands
-                |> Map.toList
-                |> printfn "%A"
+                //commands
+                //|> Map.toList
+                //|> printfn "%A"
                 (accum, noLoop)
         
+    //This is the function which finds the value of the accumulator of the original equation
     let accumAtLoop (fileName:string) =
         Advent2020.File.listedLines fileName
         |> opParse
-        |> numberedCommands
+        |> Option.map numberedCommands
         |> Option.map getLoopAccum
 
+    //This is the function which will find the value of the terminating function when jmp is swapped with nop or nop with jmp
     let accumAtFinish (fileName:string) =
         let originalListOfCommands = 
             Advent2020.File.listedLines fileName
             |> opParse
-            |> numberedCommands
+            //This will need to be piped into numberedCommands to create a numbered list, unless I am using the piped version
+
+        //I will need some function which will take the original list of commands, and output a sequence of lists of commands, with each list having a jmp or nop operation altered into a nop or jmp operation, respectively.
+        let alteredCommandLists (originalCommandList : command list) : (command list list) =
+            //Create a function which will take a list of commands and output a list of commands with each having a single jmp operation turned into a nop operation
+            let linesWithReplacedCommands (opToFind : operation) (opToReplace : operation) (originalCommandList : command list) = 
+                let listOfLinesFound =
+                    originalCommandList
+                    |> List.map ( fun commandInstance -> commandInstance.operation.Equals(opToFind))  //Use List.item to replace the itemed object with the new one with the replacement
+
+                let replaceAtIndex (indexToChange : int) = //Uses local opToReplace and originalCommandList variables from higher level, to be made more generic this needs to be added as a parameter to THIS function
+                    originalCommandList
+                    |> List.mapi (fun (index2) (listCommand: command) -> if index2 = indexToChange then {argument = listCommand.argument; operation = opToReplace} else listCommand)
+                
+                let replacementFunction (listOfReplacements : bool list) = 
+                    listOfReplacements
+                    |> List.mapi (fun (index) (replaceList : bool) -> if replaceList then Some(replaceAtIndex index) else None)
+
+                let trimNonesAndReplaceSomesInList (listToTrim : 'a option list) : ('a list) = 
+                    listToTrim
+                    |> List.filter (fun x -> x.IsSome)
+                    |> List.map (fun x -> x.Value)
+
+                listOfLinesFound
+                |> replacementFunction
+                |> trimNonesAndReplaceSomesInList
+
+            linesWithReplacedCommands operation.JMP operation.NOP originalCommandList
+            |> List.append (linesWithReplacedCommands operation.NOP operation.JMP originalCommandList)
+
+        //This command will get us the altered command lists
+        let numberedAlteredCommandLists (listToAlterAndNumber : command list) =
+            listToAlterAndNumber
+            |> alteredCommandLists
+            |> List.map numberedCommands
+
+        //Now I will need a function which will take a list of command lists, and run our looping function on the list of command lists, and return to us the accumulator for the function which returns true for terminating
+        let valueOfAccumWhichTerminates (listOfCommandListsToCheck : (int * command) list list) = 
+                listOfCommandListsToCheck
+                |> List.map getLoopAccum
+                |> List.find (fun x -> snd(x))
+                |> fst
+
+        originalListOfCommands
+        |> Option.map numberedAlteredCommandLists
+        |> Option.map valueOfAccumWhichTerminates
+
 
     let run : unit = 
         let fileName = "Advent2020D8.txt"
@@ -143,6 +189,10 @@ module Main =
             match accum with
             |accumValue, noLooped ->
                 printfn "Final accumulator value: %i. Whether the program hit the end condition: %b" accumValue noLooped
+
+        match accumAtFinish fileName with
+        | None -> printfn "Didn't work"
+        | Some accum -> printfn "Final accumulator value of terminating program: %i." accum
 
         //f# stinky poopy
 
