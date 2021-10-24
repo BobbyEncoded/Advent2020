@@ -79,7 +79,7 @@ module Main =
     //That dictionary will be indexed by line number run from, and if you hit the same element again then it will all return all the way up to the top with the accumulated list.
 
     //Use Option.map to use this function
-    let getLoopAccum (numsCommands : (int * command) list) : int = 
+    let getLoopAccum (numsCommands : (int * command) list) : int * bool = 
         let commandsMapInitForAccum = (0, Map.empty<int, command>) //Integer is initial accumulator value, Map is the accumulating map which will record commands
         let commandMap = Map.ofList numsCommands //Create a map of the list of commands so they can be searched through
         let initCommand = 0 //The first command to run in the program
@@ -93,11 +93,11 @@ module Main =
             let currentAccumCommand : Day8Helpers.accumCommand = {accumulator = fst commandMapAccum; commLine = nextCommandToRun}
             let oldMapRecord = snd commandMapAccum
             match oldMapRecord.ContainsKey nextCommandToRun with 
-            | true -> Some (currentAccumCommand.accumulator, oldMapRecord)
+            | true -> Some (currentAccumCommand.accumulator, oldMapRecord, false) //If we have hit a loop condition, then we need to return out with the current accumulator value and record of instructions, and say that we didn't terminate
             | false ->
                 let nextCommand = numCommandList.TryFind nextCommandToRun
                 match nextCommand with
-                | None -> Some (currentAccumCommand.accumulator, oldMapRecord)
+                | None -> Some (currentAccumCommand.accumulator, oldMapRecord, true) //If the next command cannot be found (appears outside the list), we're done and should return the current accumulator and the old record of commands, and say that we terminated
                 | Some nextComm -> 
                     let newMapRecord = oldMapRecord.Add (nextCommandToRun, nextComm)
                     let newAccumInfo = runCommand nextComm currentAccumCommand
@@ -106,19 +106,26 @@ module Main =
         let accumAndRunCommands = runProg commandMap commandsMapInitForAccum initCommand
 
         match accumAndRunCommands with 
-        | None -> 0
+        | None -> (0, false)
         | Some x ->
-            let mapOfCommands = snd x
-            let runCommands = Map.toList mapOfCommands
-            printfn "%A" runCommands
-            fst x
-
+            match x with 
+            |accum, commands, noLoop ->
+                commands
+                |> Map.toList
+                |> printfn "%A"
+                (accum, noLoop)
         
-    let mainProg (fileName:string) =
+    let accumAtLoop (fileName:string) =
         Advent2020.File.listedLines fileName
         |> opParse
         |> numberedCommands
         |> Option.map getLoopAccum
+
+    let accumAtFinish (fileName:string) =
+        let originalListOfCommands = 
+            Advent2020.File.listedLines fileName
+            |> opParse
+            |> numberedCommands
 
     let run : unit = 
         let fileName = "Advent2020D8.txt"
@@ -130,9 +137,12 @@ module Main =
         //| Some y -> y |> List.iter (fun x -> printfn "%s" (x.ToString()) )
         //| None -> printfn "%s" "Failed to parse"
 
-        match mainProg fileName with
+        match accumAtLoop fileName with
         | None -> printfn "Didn't work"
-        | Some accum -> printfn "Final accumulator value: %i" accum
+        | Some accum ->
+            match accum with
+            |accumValue, noLooped ->
+                printfn "Final accumulator value: %i. Whether the program hit the end condition: %b" accumValue noLooped
 
         //f# stinky poopy
 
