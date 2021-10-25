@@ -11,16 +11,18 @@ type coordinate =
         x: int;
         y: int;
         z: int;
+        w: int;
     }
 
 module private Day17Helpers = 
     //This will output a set of all coordinates which touches a certain coordinate
     let findTouchingCoordinates (inputCoordinates : coordinate Set) (inputCoordinate : coordinate) : coordinate Set = 
         seq {
-            for u = inputCoordinate.x-1 to inputCoordinate.x+1 do
-                for v = inputCoordinate.y-1 to inputCoordinate.y+1 do
-                    for w = inputCoordinate.z-1 to inputCoordinate.z+1 do
-                        yield {x = u; y = v; z = w}
+            for s = inputCoordinate.x-1 to inputCoordinate.x+1 do
+                for t = inputCoordinate.y-1 to inputCoordinate.y+1 do
+                    for u = inputCoordinate.z-1 to inputCoordinate.z+1 do
+                        for v = inputCoordinate.w-1 to inputCoordinate.w+1 do
+                            yield {x = s; y = t; z = u; w = v}
         }
         |> Set.ofSeq
 
@@ -117,7 +119,7 @@ module Main =
                 let initState = snd initPoint
                 initState.Equals(state.Active)
             initString.ToCharArray ()
-            |> Array.mapi (fun i character -> if character = '#' then ({x = i; y = lineNum; z = 0}, state.Active) else ({x = i; y = lineNum; z = 0}, state.Inactive))
+            |> Array.mapi (fun i character -> if character = '#' then ({x = i; y = lineNum; z = 0; w = 0}, state.Active) else ({x = i; y = lineNum; z = 0; w = 0}, state.Inactive))
             |> Array.filter pointHasState
             |> Array.map fst
         //Then we will need to run this function through a map to make the coordinates, get the sets out, and union all the sets.
