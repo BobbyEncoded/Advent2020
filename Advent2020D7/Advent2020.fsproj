@@ -10,6 +10,7 @@
     <Compile Include="FileRead.fs" />
     <Compile Include="Day7.fs" />
     <Compile Include="Day8.fs" />
+    <Compile Include="Day17.fs" />
     <Compile Include="main.fs" />
   </ItemGroup>
 

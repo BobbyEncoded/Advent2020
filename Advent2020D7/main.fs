@@ -7,5 +7,6 @@ module Program =
     [<EntryPoint>]
     let main argv = 
         //Advent2020.Day7.Main.run
-        Advent2020.Day8.Main.run
+        //Advent2020.Day8.Main.run
+        Advent2020.Day17.Main.run
         0
