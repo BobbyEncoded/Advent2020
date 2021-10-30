@@ -60,10 +60,8 @@ module Main =
         | a, b, c, _ -> a * b * c
 
     let parse (fileInput : string list) : int list =
-        let stringToInt (inputString : string) : int =
-            Int32.Parse inputString
         fileInput
-        |> List.map stringToInt
+        |> List.map Int32.Parse
     
 
     let run : unit = 
