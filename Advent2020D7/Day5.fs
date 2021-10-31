@@ -53,12 +53,7 @@ module Main =
             let lowerDifference = midVal - lowerVal
             let upperDifference = upperVal - midVal
 
-            //if (lowerVal = 726) then System.Diagnostics.Debugger.Break() else ()
             let check = (lowerDifference = 2)
-            //printfn "LowVal: %i" lowerVal
-            //printfn "MidVal: %i" midVal
-            //printfn "UpVal: %i" upperVal
-            //printfn "%b" check
             if check then true else false
 
         windowedIDs
