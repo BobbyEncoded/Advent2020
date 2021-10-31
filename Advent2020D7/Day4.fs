@@ -70,11 +70,82 @@ module Main =
                     |> List.map Option.isSome
                 (true, listOfValidElements)
                 ||> List.fold (fun acc elem -> acc && elem )
-                
         passports
         |> List.map checkPassportValid
         |> List.sumBy (fun b -> if b then 1 else 0)
 
+    let countTrueValidPassports (passports : passportRaw list) : int =
+        let checkPassportValid (passportToCheck : passportRaw) : bool = 
+            match passportToCheck with 
+            | {byr = byr; iyr = iyr; eyr = eyr; hgt = hgt; hcl = hcl; ecl = ecl; pid = pid; cid = cid;} ->
+                let strToInt str =
+                    match System.Int32.TryParse(str:string) with
+                    | (true, int) -> Some(int)
+                    | _ -> None
+                let inRangeInts (min : int) (max : int) (valToCheck : int) : bool = 
+                    valToCheck >= min && valToCheck <= max
+                let parseInRangeValid (min : int) (max : int) (strToVerify : string) = 
+                    let valValid = strToInt strToVerify
+                    match valValid with 
+                    | Some (valValid) -> inRangeInts min max valValid
+                    | None -> false
+                let parseInRangeValidOption (min : int) (max : int) (strToVerify : string option) = 
+                    let valValid = Option.bind strToInt strToVerify
+                    match valValid with 
+                    | Some (valValid) -> inRangeInts min max valValid
+                    | None -> false
+                let byrValid = parseInRangeValidOption 1920 2002 byr
+                let iyrValid = parseInRangeValidOption 2010 2020 iyr
+                let eyrValid = parseInRangeValidOption 2020 2030 eyr
+                let hgtValid = 
+                    match hgt with 
+                    | None -> false
+                    | Some(hgt) ->
+                        let re = new System.Text.RegularExpressions.Regex(@"(\d+)([a-zA-Z]+)")
+                        let resultMatches = re.IsMatch(hgt)
+                        match resultMatches with 
+                        | false -> false
+                        | true ->
+                            let splitHeight = re.Match(hgt)
+                            let height = splitHeight.Groups.[1].Value
+                            let measure = splitHeight.Groups.[2].Value
+                            match measure with 
+                            | "cm" -> parseInRangeValid 150 193 height
+                            | "in" -> parseInRangeValid 59 76 height
+                            | _ -> false
+                let hclValid = 
+                    match hcl with 
+                    | None -> false
+                    | Some(hcl) -> 
+                        let re = new System.Text.RegularExpressions.Regex(@"\B#([a-f0-9]{6})(?![~!@#$%^&*()=+_`\-\|\/'\[\]\{\}]|[?.,]*\w)")
+                        re.IsMatch(hcl)
+                let eclValid = 
+                    match ecl with 
+                    | None -> false
+                    | Some(ecl) ->
+                        match ecl with 
+                        | "amb" -> true
+                        | "blu" -> true
+                        | "brn" -> true
+                        | "gry" -> true
+                        | "grn" -> true
+                        | "hzl" -> true
+                        | "oth" -> true
+                        | _ -> false
+                let pidValid = 
+                    match pid with 
+                    | None -> false
+                    | Some (pid) ->
+                        let re = new System.Text.RegularExpressions.Regex(@"\b([0-9]{9})(?![~!@#$%^&*()=+_`\-\|\/'\[\]\{\}]|[?.,]|[0-9]*\w)")
+                        re.IsMatch(pid)
+                 
+                let listOfValidElements : bool list = 
+                    [byrValid; iyrValid; eyrValid; hgtValid; hclValid; eclValid; pidValid]
+                (true, listOfValidElements)
+                ||> List.fold (fun acc elem -> acc && elem )
+        passports
+        |> List.map checkPassportValid
+        |> List.sumBy (fun b -> if b then 1 else 0)
 
     let parse (fileInput : string list) : passportRaw list =
         let groupedStrings (rawInput : string list) : string list list = 
@@ -144,4 +215,4 @@ module Main =
         let fileInput = Advent2020.File.listedLines fileName
         let initialState = parse fileInput
 
-        printfn "Sum: %i" (countValidPassports initialState)
+        printfn "Sum: %i" (countTrueValidPassports initialState)
