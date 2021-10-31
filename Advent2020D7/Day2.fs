@@ -8,6 +8,7 @@ type passRule =
         max : int;
         character : char;
     }
+    //for part 2, min is the first possible position, and max is the second possible position
 
 (*
 module private Day1Helpers = 
@@ -44,19 +45,21 @@ module Main =
         let charToCount = rule.character
 
         let passCharArray = pass.ToCharArray()
-        let charCounts = 
+        let charInPos1 = 
             passCharArray
-            |> Array.countBy id
-        let valueToCount = 
-            charCounts
-            |> Array.tryFind (fun t ->
-                Char.Equals((fst t),charToCount)
-                )
-        let countOfChars = 
-            match valueToCount with 
-            | Some (_, count) -> count
-            | None -> 0
-        if (countOfChars >= minAmt && countOfChars <= maxAmt) then true else false
+            |> Array.tryItem(minAmt-1)
+        let charInPos2 = 
+            passCharArray
+            |> Array.tryItem(maxAmt-1)
+        let char1Exists =
+            match charInPos1 with 
+            | Some pos1char -> pos1char.Equals(charToCount)
+            | None -> false
+        let char2Exists = 
+            match charInPos2 with 
+            | Some pos2char -> pos2char.Equals(charToCount)
+            | None -> false
+        if (char1Exists <> char2Exists) then true else false
 
     let countValidPasswords (inputRulesAndPasses : (passRule * string) list) : int = 
         inputRulesAndPasses
