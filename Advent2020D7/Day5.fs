@@ -38,10 +38,39 @@ module Main =
     let getSeatIDFromSeat (seat : seat) : int = 
         (8 * seat.row) + seat.col
 
-    let findLargestId (seatList : seat list) : int = 
+    let getListOfSeatIDs (seatList : seat list) : int list = 
         seatList
         |> List.map getSeatIDFromSeat
-        |> List.max
+
+    let missingID (seatList : seat list) : int = 
+        let listOfIDs = getListOfSeatIDs seatList |> List.sort
+        let windowedIDs = listOfIDs |> List.windowed 3
+        let verifyWindow (windowToVerify : int list) : bool = 
+            let lowerVal = List.item 0 windowToVerify
+            let midVal = List.item 1 windowToVerify
+            let upperVal = List.item 2 windowToVerify
+            let rangeDifference = upperVal - lowerVal
+            let lowerDifference = midVal - lowerVal
+            let upperDifference = upperVal - midVal
+
+            //if (lowerVal = 726) then System.Diagnostics.Debugger.Break() else ()
+            let check = (lowerDifference = 2)
+            //printfn "LowVal: %i" lowerVal
+            //printfn "MidVal: %i" midVal
+            //printfn "UpVal: %i" upperVal
+            //printfn "%b" check
+            if check then true else false
+
+        windowedIDs
+        |> List.find verifyWindow
+        |> List.item 0
+        |> (+) 1
+
+    let alternateMissingID (seatList : seat list) : unit = 
+        let listOfIDs = getListOfSeatIDs seatList |> List.sort
+        listOfIDs
+        |> List.iteri (fun i seat -> if (((List.item (i+1) listOfIDs) - seat) <> 1) then printfn "%i" seat else () )
+
 
     let parse (fileInput : string list) : seat list =
         let splitSeatString (inputSeatString : string) : string * string =
@@ -85,4 +114,5 @@ module Main =
         let fileInput = Advent2020.File.listedLines fileName
         let initialState = parse fileInput
 
-        printfn "Largest ID: %i" (findLargestId initialState)
+        //alternateMissingID initialState
+        printfn "Missing ID: %i" (missingID initialState)
