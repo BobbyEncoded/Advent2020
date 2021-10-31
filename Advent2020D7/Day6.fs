@@ -30,7 +30,15 @@ module Main =
             |> Set.count
             )
         |> List.sum
-        
+
+    let countQuestionsAnswerByAll (inputAnswers : char Set list list) : int = 
+        inputAnswers
+        |> List.map (fun f ->
+            f
+            |> Set.intersectMany
+            |> Set.count
+            )
+        |> List.sum
 
     let parse (fileInput : string list) : char Set list list =
         let groupedStrings (rawInput : string list) : string list list = 
@@ -75,4 +83,4 @@ module Main =
         let initialState = parse fileInput
 
         //alternateMissingID initialState
-        printfn "Sum: %i" (countUniqueQuestionsAnswer initialState)
+        printfn "Sum: %i" (countQuestionsAnswerByAll initialState)
