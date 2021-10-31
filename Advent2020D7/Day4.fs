@@ -1,28 +1,49 @@
-﻿namespace Advent2020.Day2
+﻿namespace Advent2020.Day4
 
 open System
 
-type passRule = 
-    {
-        min : int;
-        max : int;
-        character : char;
-    }
-    //for part 2, min is the first possible position, and max is the second possible position
+[<Measure>] type cm
+[<Measure>] type inch
 
-(*
-module private Day1Helpers = 
-    //This will output a set of all coordinates which touches a certain coordinate
-    let findTouchingCoordinates (inputCoordinates : coordinate Set) (inputCoordinate : coordinate) : coordinate Set = 
-        seq {
-            for s = inputCoordinate.x-1 to inputCoordinate.x+1 do
-                for t = inputCoordinate.y-1 to inputCoordinate.y+1 do
-                    for u = inputCoordinate.z-1 to inputCoordinate.z+1 do
-                        for v = inputCoordinate.w-1 to inputCoordinate.w+1 do
-                            yield {x = s; y = t; z = u; w = v}
+type hexColor = 
+    {
+        red : byte
+        green : byte
+        blue : byte
+    }
+
+type passportFielded = 
+    {
+        byr : int option; //Birth year
+        iyr : int option; //Issue year
+        eyr : int option; //Expiration year
+        hgt: float<cm> option; //Height
+        hcl: hexColor option; //Hair color
+        ecl: string option; //Eye color
+        pid: int option; //Passport ID
+        cid: int option; //Country ID
+    }
+
+type passportRaw = 
+    {
+        byr : string option; //Birth year
+        iyr : string option; //Issue year
+        eyr : string option; //Expiration year
+        hgt: string option; //Height
+        hcl: string option; //Hair color
+        ecl: string option; //Eye color
+        pid: string option; //Passport ID
+        cid: string option; //Country ID
+    }
+
+
+module private Day4Helpers = 
+    type fieldAndVal = 
+        {
+            field : string;
+            stringVal : string;
         }
-        |> Set.ofSeq
-*)
+
 
 module Option =
     let (>>=) r f = Option.bind f r
@@ -37,61 +58,90 @@ module Option =
 
 module Main = 
 
-    let checkValidPassword (inputRulePass : (passRule * string)) : bool = 
-        let rule = fst inputRulePass
-        let pass = snd inputRulePass
-        let minAmt = rule.min
-        let maxAmt = rule.max
-        let charToCount = rule.character
+    let cmPerInch : float<cm/inch> = 2.54<cm/inch>
 
-        let passCharArray = pass.ToCharArray()
-        let charInPos1 = 
-            passCharArray
-            |> Array.tryItem(minAmt-1)
-        let charInPos2 = 
-            passCharArray
-            |> Array.tryItem(maxAmt-1)
-        let char1Exists =
-            match charInPos1 with 
-            | Some pos1char -> pos1char.Equals(charToCount)
-            | None -> false
-        let char2Exists = 
-            match charInPos2 with 
-            | Some pos2char -> pos2char.Equals(charToCount)
-            | None -> false
-        if (char1Exists <> char2Exists) then true else false
-
-    let countValidPasswords (inputRulesAndPasses : (passRule * string) list) : int = 
-        inputRulesAndPasses
-        |> List.map checkValidPassword
-        |> List.map (fun b -> if b then 1 else 0)
-        |> List.sum
+    let countValidPassports (passports : passportRaw list) : int =
+        let checkPassportValid (passportToCheck : passportRaw) : bool = 
+            match passportToCheck with 
+            | {byr = byr; iyr = iyr; eyr = eyr; hgt = hgt; hcl = hcl; ecl = ecl; pid = pid; cid = cid;} ->
+                let listOfValidChecks = [byr; iyr; eyr; hgt; hcl; ecl; pid]
+                let listOfValidElements : bool list = 
+                    listOfValidChecks
+                    |> List.map Option.isSome
+                (true, listOfValidElements)
+                ||> List.fold (fun acc elem -> acc && elem )
+                
+        passports
+        |> List.map checkPassportValid
+        |> List.sumBy (fun b -> if b then 1 else 0)
 
 
-    let parse (fileInput : string list) : (passRule * string) list =
-        let rulePassSplit (inputString : string) = inputString.Split(':')
-        let rulePassTuple (rulePassArray : string array) : (string * string) =
-            (rulePassArray.[0], rulePassArray.[1])
-        let ruleStringToRule (ruleString : string) : passRule =
-            let elements = ruleString.Split([|'-';' '|])
-            let minValue = elements.[0] |> Int32.Parse
-            let maxValue = elements.[1] |> Int32.Parse
-            let character = elements.[2]
-            {min = minValue; max = maxValue; character = character.ToCharArray(0,1).[0]}
-        let noSpacePass (spacePass : string) : string = 
-            spacePass.Replace(" ", "")
-        let turnTupleIntoRuleAndPass (inputTuple : string * string) : passRule * string =
-            match inputTuple with 
-            | inputRule, inputPass -> (ruleStringToRule inputRule, noSpacePass inputPass)
+    let parse (fileInput : string list) : passportRaw list =
+        let groupedStrings (rawInput : string list) : string list list = 
+            let inputFolder (acc : string list list) (entryToAdd : string) : string list list =
+                match entryToAdd with 
+                | "" ->
+                    let emptyStringList = List<string>.Empty //Note that this is a property with capital E of List<string>
+                    let newEmptyStringList = List.singleton emptyStringList
+                    List.append acc newEmptyStringList
+                | entryToAdd ->
+                    let lastStringListSplitIndex = 
+                        ((acc |> List.length) - 1)
+                    let front, last = acc |> List.splitAt lastStringListSplitIndex
+                    let updateFinalString (stringListListToReplace : string list list) : string list list = 
+                        stringListListToReplace
+                        |> List.head
+                        |> List.append (List.singleton entryToAdd)
+                        |> List.singleton
+                    last
+                    |> updateFinalString
+                    |> List.append front
+            let initialAcc : string list list =
+                List.empty<string>
+                |> List.singleton
+            (initialAcc, rawInput)
+            ||> List.fold inputFolder
+        let splitLinesIntoEntries (originalGrouping : string list) : string list = 
+            let splitLineIntoEntries (lineToSplit : string) : string list = 
+                lineToSplit.Split(' ')
+                |> Array.toList
+            let entryFolder (acc : string list) (entryToAcc : string) = 
+                entryToAcc
+                |> splitLineIntoEntries
+                |> List.append acc
+            let baseEntry = List.empty<string> //Note that this is a method which generates an empty list, of type string
+            (baseEntry, originalGrouping)
+            ||> List.fold entryFolder
+        let parseStringIntoPassportRaw (organizedEntryLines : string list) : passportRaw = 
+            let splitFieldAndVal (combinedFieldAndVal : string) : string * string = 
+                let splitString = combinedFieldAndVal.Split(':')
+                if (splitString.Length = 1) then (splitString.[0], String.Empty) else (splitString.[0], splitString.[1])
+            let fieldAndValList = organizedEntryLines |> List.map splitFieldAndVal |> Map.ofList
+            let passportCreator (inputKeys: Map<string, string>) : passportRaw = 
+                let flip f a b = f b a
+                let flippedMapTryFind = flip Map.tryFind
+                let mapToFind = flippedMapTryFind inputKeys
+                let byr = "byr" |> mapToFind
+                let iyr = "iyr" |> mapToFind
+                let eyr = "eyr" |> mapToFind
+                let hgt = "hgt" |> mapToFind
+                let hcl = "hcl" |> mapToFind
+                let ecl = "ecl" |> mapToFind
+                let pid = "pid" |> mapToFind
+                let cid = "cid" |> mapToFind
+                {byr = byr; iyr = iyr; eyr = eyr; hgt = hgt; hcl = hcl; ecl = ecl; pid = pid; cid = cid;}
+            fieldAndValList
+            |> passportCreator
         fileInput
-        |> List.map rulePassSplit
-        |> List.map rulePassTuple
-        |> List.map turnTupleIntoRuleAndPass
+        |> groupedStrings
+        |> List.map splitLinesIntoEntries
+        |> List.map parseStringIntoPassportRaw
+                
     
 
     let run : unit = 
-        let fileName = "Advent2020D2.txt"
+        let fileName = "Advent2020D4.txt"
         let fileInput = Advent2020.File.listedLines fileName
         let initialState = parse fileInput
 
-        printfn "Sum: %i" (countValidPasswords initialState)
+        printfn "Sum: %i" (countValidPassports initialState)
