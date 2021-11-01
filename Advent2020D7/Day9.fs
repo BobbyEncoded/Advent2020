@@ -71,6 +71,27 @@ module Main =
         |> List.find (fun opt -> opt.IsSome)
         |> Option.defaultValue 0L
 
+    let findEncryptionWeakness (inputList : int64 list) (encryptionWeakness : int64) : int64 = 
+        //To find the encryption weakness, we will need to see if a sum of any possible window adds up to our magic number
+        //Then we will need to add the first and last terms of that window
+        let initialWindowSize = 2
+        let rec windowHunter (windowSizeAcc : int) : int64 = 
+            let windowsToSum = inputList |> (List.windowed windowSizeAcc)
+            let windowSums = windowsToSum |> List.map List.sum
+            let indexOfProperSum = windowSums |> List.tryFindIndex (fun sum -> sum = encryptionWeakness)
+            match indexOfProperSum with
+            | None ->
+                let newWindowSize = windowSizeAcc + 1
+                windowHunter newWindowSize
+            | Some(index) ->
+                let windowToGetKey = 
+                    windowsToSum
+                    |> List.item index
+                let encryptionWeakness = (List.max windowToGetKey) + (List.min windowToGetKey)
+                encryptionWeakness
+        windowHunter initialWindowSize
+
+
     let parse (fileInput : string list) : int64 list =
         fileInput
         |> List.map Int64.Parse
@@ -80,5 +101,7 @@ module Main =
         let fileInput = Advent2020.File.listedLines fileName
         let initialState = parse fileInput
 
+        let encryptionWeakness = getFirstCrack initialState
+
         //alternateMissingID initialState
-        printfn "First Cracked Number: %i" (getFirstCrack initialState)
+        printfn "Encryption Weakness: %i" (findEncryptionWeakness initialState encryptionWeakness)
