@@ -53,35 +53,35 @@ module Main =
         printfn "%A" inputList
         inputList
 
-    let possibleAdapterCombinations (sourceList : int list) : int list list =
-        //let startingAdapter = [(1, 0)]
+    let possibleAdapterCombinations (sourceList : int list) : int64 =
+        let startingAdapter = [(1L, 0)]
         let maxSourceAdapter = sourceList |> List.max |> (+) 3
-        let rec adapterCombinationPossibilities (currentAdapters : int list) : int list list =
-            let findAdaptersWithin3 (maxAdapter : int) : int list =
-                sourceList
-                |> List.filter (fun p -> (p > maxAdapter) && (p <= maxAdapter + 3))
-            let maxRecAdapter = 
-                currentAdapters
-                |> List.max
-            let nextAdapters =
-                maxRecAdapter
-                |> findAdaptersWithin3
-            match nextAdapters with 
-            | [] -> if (maxRecAdapter = maxSourceAdapter) then (currentAdapters |> List.singleton) else (List<int>.Empty |> List.singleton)
-            | nextAdapters ->
-                nextAdapters
-                |> List.map (fun i ->
-                    i
-                    |> List.singleton
-                    |> List.append currentAdapters)
-                |> List.map adapterCombinationPossibilities
-                |> List.concat
-        adapterCombinationPossibilities [0]
-
-    let countArrangements (inputList : int list) : int = 
-        inputList
-        |> possibleAdapterCombinations
-        |> List.length
+        let sortedSourceList = 
+            sourceList
+            |> List.append (List.singleton maxSourceAdapter)
+            |> List.sort
+        let startingAdapterToSearch = sortedSourceList |> List.min
+        let rec adapterCombinationPossibilities (currentCountsAndAdapters : (int64 * int) list) (nextAdapter : int) : int64 =
+            let noAdaptersWithinThree =
+                currentCountsAndAdapters
+                |> List.filter (fun x -> ((snd x) >= (nextAdapter - 3)))
+            let methodsToThisAdapter = 
+                noAdaptersWithinThree
+                |> List.map fst
+                |> List.sum
+            let newCountsAndAdaptersList =
+                List.append noAdaptersWithinThree (List.singleton (methodsToThisAdapter, nextAdapter))
+            let newIndex = 
+                sortedSourceList
+                |> List.findIndex (fun i -> i = nextAdapter)
+                |> (+) 1
+            let newNextAdapter = 
+                sortedSourceList
+                |> List.tryItem (newIndex)
+            match newNextAdapter with 
+            | None -> methodsToThisAdapter
+            | Some (newNextAdapter) -> adapterCombinationPossibilities newCountsAndAdaptersList newNextAdapter
+        adapterCombinationPossibilities startingAdapter startingAdapterToSearch
 
     let mainRun (inputList : int list) : int = 
         inputList
@@ -103,4 +103,4 @@ module Main =
         let initialState = parse fileInput
 
         //alternateMissingID initialState
-        printfn "Counts Multiplied: %i" (countArrangements initialState)
+        printfn "Counts Multiplied: %i" (possibleAdapterCombinations initialState)
