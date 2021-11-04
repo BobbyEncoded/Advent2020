@@ -20,7 +20,7 @@ module Main =
         rawInput
         |> List.sort
 
-    let addUserDevice (inputList : int list) : int list = 
+    let addUserDevice (inputList : int list) : int list =
         let maxInList = inputList |> List.max
         inputList
         |> List.append [0; (maxInList + 3)]
@@ -53,6 +53,36 @@ module Main =
         printfn "%A" inputList
         inputList
 
+    let possibleAdapterCombinations (sourceList : int list) : int list list =
+        //let startingAdapter = [(1, 0)]
+        let maxSourceAdapter = sourceList |> List.max |> (+) 3
+        let rec adapterCombinationPossibilities (currentAdapters : int list) : int list list =
+            let findAdaptersWithin3 (maxAdapter : int) : int list =
+                sourceList
+                |> List.filter (fun p -> (p > maxAdapter) && (p <= maxAdapter + 3))
+            let maxRecAdapter = 
+                currentAdapters
+                |> List.max
+            let nextAdapters =
+                maxRecAdapter
+                |> findAdaptersWithin3
+            match nextAdapters with 
+            | [] -> if (maxRecAdapter = maxSourceAdapter) then (currentAdapters |> List.singleton) else (List<int>.Empty |> List.singleton)
+            | nextAdapters ->
+                nextAdapters
+                |> List.map (fun i ->
+                    i
+                    |> List.singleton
+                    |> List.append currentAdapters)
+                |> List.map adapterCombinationPossibilities
+                |> List.concat
+        adapterCombinationPossibilities [0]
+
+    let countArrangements (inputList : int list) : int = 
+        inputList
+        |> possibleAdapterCombinations
+        |> List.length
+
     let mainRun (inputList : int list) : int = 
         inputList
         |> addUserDevice
@@ -61,7 +91,7 @@ module Main =
         |> countNumberOfDifferences
         |> arrayLog
         |> multiplyMinMaxCount
-
+        
 
     let parse (fileInput : string list) : int list =
         fileInput
@@ -73,4 +103,4 @@ module Main =
         let initialState = parse fileInput
 
         //alternateMissingID initialState
-        printfn "Counts Multiplied: %i" (mainRun initialState)
+        printfn "Counts Multiplied: %i" (countArrangements initialState)
