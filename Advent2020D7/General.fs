@@ -45,13 +45,16 @@ module Option =
 
 module List = 
     let product (list : int64 list) : int64 = 
-        let rec product (state : int64) (remainingList : int64 list) = 
-            match remainingList with 
-            | [] -> state
-            | head::tail ->
-                let newState = state * head
-                product newState tail
-        product (list.Head) list.Tail
+        match list with
+        | [] -> 0L
+        | head::tail -> 
+            let rec product (state : int64) (remainingList : int64 list) = 
+                match remainingList with 
+                | [] -> state
+                | head::tail ->
+                    let newState = state * head
+                    product newState tail
+            product head tail
 
 module File =
 
