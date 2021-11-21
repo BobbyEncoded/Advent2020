@@ -10,20 +10,6 @@ type sumContainer =
         sum : int;
     }
 
-(*
-module private Day1Helpers = 
-    //This will output a set of all coordinates which touches a certain coordinate
-    let findTouchingCoordinates (inputCoordinates : coordinate Set) (inputCoordinate : coordinate) : coordinate Set = 
-        seq {
-            for s = inputCoordinate.x-1 to inputCoordinate.x+1 do
-                for t = inputCoordinate.y-1 to inputCoordinate.y+1 do
-                    for u = inputCoordinate.z-1 to inputCoordinate.z+1 do
-                        for v = inputCoordinate.w-1 to inputCoordinate.w+1 do
-                            yield {x = s; y = t; z = u; w = v}
-        }
-        |> Set.ofSeq
-*)
-
 module Option =
     let (>>=) r f = Option.bind f r
     let rtn v     = Some v
