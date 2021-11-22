@@ -3,6 +3,7 @@
 open System
 open Advent2020 //Contains Range type and accessors
 open System.Text.RegularExpressions //Allows usage of Regular Expressions
+open HPCsharp
 
 module Main =
 
