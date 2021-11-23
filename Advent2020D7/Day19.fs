@@ -45,13 +45,27 @@ module Main =
         rules, messages
 
     let maxEntrySize (messages : string list) = messages |> List.maxBy (fun x -> x.Length) |> String.length
-                
-    let findPossibleCombinations (rules : Map<int, Rule>) (ruleToCheck : int) (maxEntrySize : int) = 
-        let initialRule = rules |> Map.find ruleToCheck
+           
+    
+    let sumEntriesAgainstSet (validCombinations : string Set) (inputEntries : string list) = 
+        let hashSetCombos = new System.Collections.Generic.HashSet<string>(validCombinations)
+        printfn "Num Combos: %i" (hashSetCombos.Count)
+        let counts = 
+            inputEntries
+            |> List.map hashSetCombos.Contains
+            |> List.map (fun x -> if x then 1 else 0)
+            |> List.sum
+        printfn "Counts: %i" counts
+        counts
+
+    let findPossibleCombinations (rules : Map<int, Rule>) (ruleToCheck : int) (maxEntrySize : int) (initialEntries : string list) = 
+        let hashSetRules = new System.Collections.Generic.Dictionary<int, Rule>(rules)
+        let initialRule = hashSetRules.[ruleToCheck]
         let initialSet = Set.empty<string>
         let initialPrevRuleSet = Set.empty<Rule list>
 
         let rec createCombos2 (baseRule : Rule list Set) (setOfCompletedBranches : string Set) (prevRuleSet : Rule list Set) = 
+            sumEntriesAgainstSet setOfCompletedBranches initialEntries |> ignore
             let trimmedTooLongRules =
                 baseRule
                 |> Set.filter (fun x -> List.length x <= maxEntrySize)
@@ -73,11 +87,7 @@ module Main =
                                     | None ->
                                         let rulesToSearch = x.FirstRules // If there's only primary rules in this rule
                                         let newRuleList = // Look up each rule in the higher level rule and make a list of those found rules
-                                            rulesToSearch
-                                            |> List.map (fun index ->
-                                                rules
-                                                |> Map.find index
-                                                )
+                                            rulesToSearch |> List.map (fun index -> hashSetRules.[index])
                                         yield! newRuleList //We can yield a collection of rules through the computation expression
                         ]
                     flattenedRuleSeq
@@ -152,13 +162,6 @@ module Main =
 
         createCombos2 (initialRule |> List.singleton |> List.singleton |> Set.ofList) initialSet initialPrevRuleSet
 
-    let sumEntriesAgainstSet (validCombinations : string Set) (inputEntries : string list) = 
-        let hashSetCombos = new System.Collections.Generic.HashSet<string>(validCombinations)
-        printfn "Num Combos: %i" (hashSetCombos.Count)
-        inputEntries
-        |> List.map hashSetCombos.Contains
-        |> List.map (fun x -> if x then 1 else 0)
-        |> List.sum
 
     let updateMapForPart2 (initialMap : Map<int, Rule>) = 
         initialMap
@@ -168,11 +171,11 @@ module Main =
             Rule.RuleCol{FirstRules = [42; 31]; OrRules = Some[42; 11; 31]} |> Some)
 
     let run : unit = 
-        let fileName = "Advent2020D19Test2.txt"
+        let fileName = "Advent2020D19.txt"
         let fileInput = Advent2020.File.listedLines fileName
         let initialMap, initialEntries = parse fileInput
         let maxSize = initialEntries |> maxEntrySize
         let part2Map = initialMap |> updateMapForPart2
-        let combinations = findPossibleCombinations initialMap 0 maxSize
+        let combinations = findPossibleCombinations initialMap 0 maxSize initialEntries
         
         printfn "%i" (sumEntriesAgainstSet combinations initialEntries)
