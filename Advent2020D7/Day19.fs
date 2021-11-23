@@ -15,6 +15,8 @@ and RuleCol =
 
 module Main =
 
+    exception Unresolvable
+
     let parse (fileInput : string list) =
         let separatedStrings = General.groupedStrings(fileInput)
         let ruleStrings = separatedStrings.Item 0
@@ -39,63 +41,119 @@ module Main =
                     index, Rule.RuleCol{FirstRules = firstRules |> parseAndList; OrRules = Some(orRules |> Array.tail |> parseAndList)}
 
         let rules = ruleStrings |> List.map getRuleFromRuleString |> Map.ofList
-        let messageChars = messages |> List.map (fun x -> x.ToCharArray() |> List.ofArray)
-        rules, messageChars
+        //let messageChars = messages |> List.map (fun x -> x.ToCharArray() |> List.ofArray)
+        rules, messages
+
+    let maxEntrySize (messages : string list) = messages |> List.maxBy (fun x -> x.Length) |> String.length
                 
-    let findPossibleCombinations (rules : Map<int, Rule>) (ruleToCheck : int) = 
+    let findPossibleCombinations (rules : Map<int, Rule>) (ruleToCheck : int) (maxEntrySize : int) = 
         let initialRule = rules |> Map.find ruleToCheck
-        let flippedFind = rules |> (General.flip Map.find)
+        let initialSet = Set.empty<string>
 
-        let rec createCombinations (baseRule : Rule) = //(possibleVariations : char list list) = 
-            let getCombosFromRules rulesFound =
-                rulesFound
-                |> List.map (fun x -> createCombinations x)
-                |> List.concat
-            match baseRule with 
-            | Letter c -> [[c]]
-            | RuleCol rules -> 
-                match rules.OrRules with
-                | None ->
-                    let rulesFound = rules.FirstRules |> List.map flippedFind
-                    rulesFound |> getCombosFromRules
-                | Some orRules ->
-                    let firstRulesFound = rules.FirstRules |> List.map flippedFind
-                    let orRulesFound = orRules |> List.map flippedFind
-                    let firstRuleCombos = firstRulesFound |> getCombosFromRules
-                    let orRuleCombos = orRulesFound |> getCombosFromRules
-                    List.append firstRuleCombos orRuleCombos
-
-        let rec createCombos2 (baseRule : Rule list list) = 
-            // First check if we have resolved everything into characters
+        let rec createCombos2 (baseRule : Rule list list) (setOfCompletedBranches : string Set) = 
+            // First check if we have resolved everything into characters, or there are no more 
             let fullyDissolved = 
                 baseRule
                 |> List.forall (fun x ->
-                    x
-                    |> List.forall (fun y ->
-                        match y with
-                        | Rule.Letter -> true
-                        | Rule.RuleCol -> false
-                        )
+                    (List.length x > maxEntrySize)
                     )
             match fullyDissolved with
-            | true -> //If we fully dissolved everything, we can return the list of correct sequences.  We now have a list of a list of Rules, where all the Rules are characters.
-                baseRule
-                |> List.map (fun x -> 
-                    let acc = List<char>.Empty
-                    (acc, x)
-                    ||> List.fold (fun acc x ->
-                        match x with
-                        | Letter 
+            | true -> setOfCompletedBranches
+            | false ->
+                let explodeARuleList (flattenedRuleList : Rule list) = //flattenedRuleList needs to be a list of flattened rules, and we will now unflatten them into their components
+                    let flattenedRuleSeq = [
+                            for rule in flattenedRuleList do
+                                match rule with
+                                | Rule.Letter x -> yield (Rule.Letter x) //If it's a letter then map the element to a letter
+                                | Rule.RuleCol x -> //If it's a Rule Collection
+                                    match x.OrRules with
+                                    | Some _ -> raise Unresolvable //If there's extra rules, throw an exception
+                                    | None ->
+                                        let rulesToSearch = x.FirstRules // If there's only primary rules in this rule
+                                        let newRuleList = // Look up each rule in the higher level rule and make a list of those found rules
+                                            rulesToSearch
+                                            |> List.map (fun index ->
+                                                rules
+                                                |> Map.find index
+                                                )
+                                        yield! newRuleList //We can yield a collection of rules through the computation expression
+                        ]
+                    flattenedRuleSeq
+                let flattenRules (unflattenedRuleList : Rule list) = //This is the unflattened rule list from the previous function, which we will now do math on to pass along in a flat form.
+                    let acc = List<Rule>.Empty |> List.singleton
+                    (acc, unflattenedRuleList)
+                    ||> List.fold (fun acc ruleToAdd ->
+                        match ruleToAdd with
+                        | Letter _ -> 
+                            acc
+                            |> List.map (fun x ->
+                                ruleToAdd
+                                |> List.singleton
+                                |> List.append x
+                                )
+                        | RuleCol rc ->
+                            let accAddFunc (ruleList : int list) (accToAdd : Rule list list) = 
+                                accToAdd
+                                |> List.map (fun x ->
+                                    Rule.RuleCol{FirstRules = ruleList; OrRules = None}
+                                    |> List.singleton
+                                    |> List.append x
+                                    )
+                            match rc.OrRules with
+                            | None ->
+                                acc
+                                |> accAddFunc rc.FirstRules
+                            | Some orRules ->
+                                let firstSet = 
+                                    acc
+                                    |> accAddFunc rc.FirstRules
+                                let orSet = 
+                                    acc
+                                    |> accAddFunc orRules
+                                List.append firstSet orSet
                         )
-                    )
+                let updatedRules = 
+                    baseRule
+                    |> List.map explodeARuleList
+                    |> List.map flattenRules
+                    |> List.concat
+                let checkForCompletedRuleSets (flattenedRules : Rule list list) = 
+                    let splitByBeingComplete (listToCheck : Rule list) = 
+                        listToCheck
+                        |> List.forall (fun x ->
+                            match x with
+                            | Letter _ -> true
+                            | RuleCol _ -> false
+                            )
+                    let listsToAdd, listsToPass = 
+                        flattenedRules
+                        |> List.partition splitByBeingComplete
+                    let setToReturn = 
+                        listsToAdd
+                        |> Set.ofList
+                        |> Set.map (fun x ->
+                            x
+                            |> List.map (fun y ->
+                                    match y with
+                                    | Letter c -> c
+                                    | RuleCol _ -> raise Unresolvable
+                                )
+                            |> Array.ofList
+                            |> System.String
+                            )
+                        |> Set.union setOfCompletedBranches
+                    setToReturn, listsToPass
+                let newSet, nextRules = 
+                    updatedRules
+                    |> checkForCompletedRuleSets
+                createCombos2 nextRules newSet
 
-                    
-
-        createCombos2 (initialRule |> List.singleton)
+        createCombos2 (initialRule |> List.singleton |> List.singleton) initialSet
 
     let run : unit = 
         let fileName = "Advent2020D19Test.txt"
         let fileInput = Advent2020.File.listedLines fileName
-        let initialState = parse fileInput
+        let initialMap, initialEntries = parse fileInput
+        let maxSize = initialEntries |> maxEntrySize 
         
-        printfn "%A" (findPossibleCombinations (fst initialState) 0)
+        printfn "%A" (findPossibleCombinations initialMap 0 maxSize)
