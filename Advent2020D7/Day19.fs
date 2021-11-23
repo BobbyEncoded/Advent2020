@@ -50,18 +50,18 @@ module Main =
         let initialRule = rules |> Map.find ruleToCheck
         let initialSet = Set.empty<string>
 
-        let rec createCombos2 (baseRule : Rule list list) (setOfCompletedBranches : string Set) = 
+        let rec createCombos2 (baseRule : Rule array array) (setOfCompletedBranches : string Set) = 
             // First check if we have resolved everything into characters, or there are no more 
             let fullyDissolved = 
                 baseRule
-                |> List.forall (fun x ->
-                    (List.length x > maxEntrySize)
+                |> Array.forall (fun x ->
+                    (Array.length x > maxEntrySize)
                     )
             match fullyDissolved with
             | true -> setOfCompletedBranches
             | false ->
-                let explodeARuleList (flattenedRuleList : Rule list) = //flattenedRuleList needs to be a list of flattened rules, and we will now unflatten them into their components
-                    let flattenedRuleSeq = [
+                let explodeARuleList (flattenedRuleList : Rule array) = //flattenedRuleList needs to be a list of flattened rules, and we will now unflatten them into their components
+                    let flattenedRuleSeq = [|
                             for rule in flattenedRuleList do
                                 match rule with
                                 | Rule.Letter x -> yield (Rule.Letter x) //If it's a letter then map the element to a letter
@@ -77,27 +77,27 @@ module Main =
                                                 |> Map.find index
                                                 )
                                         yield! newRuleList //We can yield a collection of rules through the computation expression
-                        ]
+                        |]
                     flattenedRuleSeq
-                let flattenRules (unflattenedRuleList : Rule list) = //This is the unflattened rule list from the previous function, which we will now do math on to pass along in a flat form.
-                    let acc = List<Rule>.Empty |> List.singleton
+                let flattenRules (unflattenedRuleList : Rule array) = //This is the unflattened rule list from the previous function, which we will now do math on to pass along in a flat form.
+                    let acc = Array.empty<Rule> |> Array.singleton
                     (acc, unflattenedRuleList)
-                    ||> List.fold (fun acc ruleToAdd ->
+                    ||> Array.fold (fun acc ruleToAdd ->
                         match ruleToAdd with
                         | Letter _ -> 
                             acc
-                            |> List.map (fun x ->
+                            |> Array.map (fun x ->
                                 ruleToAdd
-                                |> List.singleton
-                                |> List.append x
+                                |> Array.singleton
+                                |> Array.append x
                                 )
                         | RuleCol rc ->
-                            let accAddFunc (ruleList : int list) (accToAdd : Rule list list) = 
+                            let accAddFunc (ruleList : int list) (accToAdd : Rule array array) = 
                                 accToAdd
-                                |> List.map (fun x ->
+                                |> Array.map (fun x ->
                                     Rule.RuleCol{FirstRules = ruleList; OrRules = None}
-                                    |> List.singleton
-                                    |> List.append x
+                                    |> Array.singleton
+                                    |> Array.append x
                                     )
                             match rc.OrRules with
                             | None ->
@@ -110,35 +110,34 @@ module Main =
                                 let orSet = 
                                     acc
                                     |> accAddFunc orRules
-                                List.append firstSet orSet
+                                Array.append firstSet orSet
                         )
                 let updatedRules = 
                     baseRule
-                    |> List.map explodeARuleList
-                    |> List.map flattenRules
-                    |> List.concat
-                let checkForCompletedRuleSets (flattenedRules : Rule list list) = 
-                    let splitByBeingComplete (listToCheck : Rule list) = 
+                    |> Array.map explodeARuleList
+                    |> Array.map flattenRules
+                    |> Array.concat
+                let checkForCompletedRuleSets (flattenedRules : Rule array array) = 
+                    let splitByBeingComplete (listToCheck : Rule array) = 
                         listToCheck
-                        |> List.forall (fun x ->
+                        |> Array.forall (fun x ->
                             match x with
                             | Letter _ -> true
                             | RuleCol _ -> false
                             )
                     let listsToAdd, listsToPass = 
                         flattenedRules
-                        |> List.partition splitByBeingComplete
+                        |> Array.partition splitByBeingComplete
                     let setToReturn = 
                         listsToAdd
-                        |> Set.ofList
+                        |> Set.ofArray
                         |> Set.map (fun x ->
                             x
-                            |> List.map (fun y ->
+                            |> Array.map (fun y ->
                                     match y with
                                     | Letter c -> c
                                     | RuleCol _ -> raise Unresolvable
                                 )
-                            |> Array.ofList
                             |> System.String
                             )
                         |> Set.union setOfCompletedBranches
@@ -148,7 +147,7 @@ module Main =
                     |> checkForCompletedRuleSets
                 createCombos2 nextRules newSet
 
-        createCombos2 (initialRule |> List.singleton |> List.singleton) initialSet
+        createCombos2 (initialRule |> Array.singleton |> Array.singleton) initialSet
 
     let sumEntriesAgainstSet (validCombinations : string Set) (inputEntries : string list) = 
         let hashSetCombos = new System.Collections.Generic.HashSet<string>(validCombinations)
