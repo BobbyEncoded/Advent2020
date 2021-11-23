@@ -174,6 +174,6 @@ module Main =
         let initialMap, initialEntries = parse fileInput
         let maxSize = initialEntries |> maxEntrySize
         let part2Map = initialMap |> updateMapForPart2
-        let combinations = findPossibleCombinations part2Map 0 maxSize initialEntries
+        let combinations = findPossibleCombinations initialMap 0 maxSize initialEntries
         
         printfn "%i" (sumEntriesAgainstSet combinations initialEntries)
