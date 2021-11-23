@@ -149,6 +149,9 @@ module Main =
 
         createCombos2 (initialRule |> Array.singleton |> Array.singleton) initialSet
 
+    let makeMasterRegex (rules : Map<int, Rule>) (ruleToCheck : int) (maxEntrySize : int) = 
+        
+
     let sumEntriesAgainstSet (validCombinations : string Set) (inputEntries : string list) = 
         let hashSetCombos = new System.Collections.Generic.HashSet<string>(validCombinations)
         printfn "Num Combos: %i" (hashSetCombos.Count)
