@@ -49,14 +49,16 @@ module Main =
     let findPossibleCombinations (rules : Map<int, Rule>) (ruleToCheck : int) (maxEntrySize : int) = 
         let initialRule = rules |> Map.find ruleToCheck
         let initialSet = Set.empty<string>
+        let initialPrevRuleSet = Set.empty<Rule list>
 
-        let rec createCombos2 (baseRule : Rule list list) (setOfCompletedBranches : string Set) = 
-            // First check if we have resolved everything into characters, or there are no more 
-            let fullyDissolved = 
+        let rec createCombos2 (baseRule : Rule list Set) (setOfCompletedBranches : string Set) (prevRuleSet : Rule list Set) = 
+            let trimmedTooLongRules =
                 baseRule
-                |> List.forall (fun x ->
-                    (List.length x > maxEntrySize)
-                    )
+                |> Set.filter (fun x -> List.length x <= maxEntrySize)
+            let currentRuleList = trimmedTooLongRules |> List.ofSeq
+            // Check if we have resolved infinite loops
+            let fullyDissolved = 
+                Set.isSuperset prevRuleSet trimmedTooLongRules
             match fullyDissolved with
             | true -> setOfCompletedBranches
             | false ->
@@ -113,7 +115,7 @@ module Main =
                                 List.append firstSet orSet
                         )
                 let updatedRules = 
-                    baseRule
+                    currentRuleList
                     |> List.map explodeARuleList
                     |> List.map flattenRules
                     |> List.concat
@@ -146,9 +148,9 @@ module Main =
                 let newSet, nextRules = 
                     updatedRules
                     |> checkForCompletedRuleSets
-                createCombos2 nextRules newSet
+                createCombos2 (nextRules |> Set.ofList) newSet trimmedTooLongRules
 
-        createCombos2 (initialRule |> List.singleton |> List.singleton) initialSet
+        createCombos2 (initialRule |> List.singleton |> List.singleton |> Set.ofList) initialSet initialPrevRuleSet
 
     let sumEntriesAgainstSet (validCombinations : string Set) (inputEntries : string list) = 
         let hashSetCombos = new System.Collections.Generic.HashSet<string>(validCombinations)
