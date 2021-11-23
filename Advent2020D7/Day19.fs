@@ -43,11 +43,59 @@ module Main =
         rules, messageChars
                 
     let findPossibleCombinations (rules : Map<int, Rule>) (ruleToCheck : int) = 
-        let initialRule = rules.TryFind ruleToCheck
+        let initialRule = rules |> Map.find ruleToCheck
+        let flippedFind = rules |> (General.flip Map.find)
+
+        let rec createCombinations (baseRule : Rule) = //(possibleVariations : char list list) = 
+            let getCombosFromRules rulesFound =
+                rulesFound
+                |> List.map (fun x -> createCombinations x)
+                |> List.concat
+            match baseRule with 
+            | Letter c -> [[c]]
+            | RuleCol rules -> 
+                match rules.OrRules with
+                | None ->
+                    let rulesFound = rules.FirstRules |> List.map flippedFind
+                    rulesFound |> getCombosFromRules
+                | Some orRules ->
+                    let firstRulesFound = rules.FirstRules |> List.map flippedFind
+                    let orRulesFound = orRules |> List.map flippedFind
+                    let firstRuleCombos = firstRulesFound |> getCombosFromRules
+                    let orRuleCombos = orRulesFound |> getCombosFromRules
+                    List.append firstRuleCombos orRuleCombos
+
+        let rec createCombos2 (baseRule : Rule list list) = 
+            // First check if we have resolved everything into characters
+            let fullyDissolved = 
+                baseRule
+                |> List.forall (fun x ->
+                    x
+                    |> List.forall (fun y ->
+                        match y with
+                        | Rule.Letter -> true
+                        | Rule.RuleCol -> false
+                        )
+                    )
+            match fullyDissolved with
+            | true -> //If we fully dissolved everything, we can return the list of correct sequences.  We now have a list of a list of Rules, where all the Rules are characters.
+                baseRule
+                |> List.map (fun x -> 
+                    let acc = List<char>.Empty
+                    (acc, x)
+                    ||> List.fold (fun acc x ->
+                        match x with
+                        | Letter 
+                        )
+                    )
+
+                    
+
+        createCombos2 (initialRule |> List.singleton)
 
     let run : unit = 
-        let fileName = "Advent2020D19.txt"
+        let fileName = "Advent2020D19Test.txt"
         let fileInput = Advent2020.File.listedLines fileName
         let initialState = parse fileInput
         
-        printfn "%A" initialState
+        printfn "%A" (findPossibleCombinations (fst initialState) 0)
