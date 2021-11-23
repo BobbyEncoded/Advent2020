@@ -150,10 +150,20 @@ module Main =
 
         createCombos2 (initialRule |> List.singleton |> List.singleton) initialSet
 
+    let sumEntriesAgainstSet (validCombinations : string Set) (inputEntries : string list) = 
+        inputEntries
+        |> List.map (fun x ->
+            validCombinations
+            |> Set.contains x
+            )
+        |> List.map (fun x -> if x then 1 else 0)
+        |> List.sum
+
     let run : unit = 
-        let fileName = "Advent2020D19Test.txt"
+        let fileName = "Advent2020D19.txt"
         let fileInput = Advent2020.File.listedLines fileName
         let initialMap, initialEntries = parse fileInput
-        let maxSize = initialEntries |> maxEntrySize 
+        let maxSize = initialEntries |> maxEntrySize
+        let combinations = findPossibleCombinations initialMap 0 maxSize
         
-        printfn "%A" (findPossibleCombinations initialMap 0 maxSize)
+        printfn "%i" (sumEntriesAgainstSet combinations initialEntries)
