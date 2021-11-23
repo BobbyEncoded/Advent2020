@@ -114,8 +114,8 @@ module Main =
                         )
                 let updatedRules = 
                     baseRule
-                    |> Array.map explodeARuleList
-                    |> Array.map flattenRules
+                    |> Array.Parallel.map explodeARuleList
+                    |> Array.Parallel.map flattenRules
                     |> Array.concat
                 let checkForCompletedRuleSets (flattenedRules : Rule array array) = 
                     let splitByBeingComplete (listToCheck : Rule array) = 
@@ -127,7 +127,7 @@ module Main =
                             )
                     let listsToAdd, listsToPass = 
                         flattenedRules
-                        |> Array.partition splitByBeingComplete
+                        |> Array.Parallel.partition splitByBeingComplete
                     let setToReturn = 
                         listsToAdd
                         |> Set.ofArray
