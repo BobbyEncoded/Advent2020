@@ -158,11 +158,19 @@ module Main =
         |> List.map (fun x -> if x then 1 else 0)
         |> List.sum
 
+    let updateMapForPart2 (initialMap : Map<int, Rule>) = 
+        initialMap
+        |> Map.change 8 (fun _ ->
+            Rule.RuleCol{FirstRules = [42]; OrRules = Some[42; 8]} |> Some)
+        |> Map.change 11 (fun _ ->
+            Rule.RuleCol{FirstRules = [42; 31]; OrRules = Some[42; 11; 31]} |> Some)
+
     let run : unit = 
         let fileName = "Advent2020D19.txt"
         let fileInput = Advent2020.File.listedLines fileName
         let initialMap, initialEntries = parse fileInput
         let maxSize = initialEntries |> maxEntrySize
-        let combinations = findPossibleCombinations initialMap 0 maxSize
+        let part2Map = initialMap |> updateMapForPart2
+        let combinations = findPossibleCombinations part2Map 0 maxSize
         
         printfn "%i" (sumEntriesAgainstSet combinations initialEntries)
