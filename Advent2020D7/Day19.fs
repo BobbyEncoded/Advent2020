@@ -3,6 +3,7 @@
 open System
 open Advent2020 //Contains Range type and accessors
 open System.Text.RegularExpressions //Allows usage of Regular Expressions
+open System.Linq
 
 type Rule = 
     | Letter of char
@@ -160,6 +161,58 @@ module Main =
 
         createCombos2 (initialRule |> List.singleton |> List.singleton |> Set.ofList) initialSet initialPrevRuleSet
 
+    let iterateRegex (rules : Map<int, Rule>) (ruleToCheck : int) (initialEntries : string list) = 
+        let initialRegex = "^(" + ruleToCheck.ToString() + ")$"
+        //Function which will take a rule index and find its rule and convert it into a usable string for regex
+        let createReplacementRegexFromMatch (inputRule : Rule) : string = 
+            match inputRule with
+            | Letter c -> c.ToString()
+            | RuleCol ruleCol ->
+                let convertIntListToString (inputIntList : int list) : string = 
+                    inputIntList
+                    |> List.map (fun x -> "(" + x.ToString() + ")")
+                    |> String.concat ""
+                match ruleCol.OrRules with
+                | None ->
+                    ruleCol.FirstRules |> convertIntListToString
+                | Some orRules ->
+                    "(" + (convertIntListToString ruleCol.FirstRules) + "|" + (convertIntListToString orRules) + ")"
+        let initialRuleIndices = rules |> Map.keys |> (fun x -> x.ToList()) :> System.Collections.Generic.IEnumerable<int> |> Seq.cast<int> //Lotta bullmit to convert keys to a Sequence
+        let replacementRegexFunctions = //Sequence of partially applied functions which just need the original string to pass along.
+            initialRuleIndices
+            |> Seq.map (fun x ->
+                let replacementString = 
+                    x
+                    |> (General.flip Map.find) rules
+                    |> createReplacementRegexFromMatch
+                let newRegex = new Regex("("+x.ToString()+")")
+                let replacementRegexFunc (replacementString : string) (inputString : string) = newRegex.Replace(inputString, replacementString)
+                replacementRegexFunc replacementString
+                )
+        //This function will run a series of Regex replacements on a master regex to generate the new regex expression
+        let runRegexGeneration (inputRegexString : string) = 
+            (inputRegexString, replacementRegexFunctions)
+            ||> Seq.fold (fun inputString regexReplaceFunc -> regexReplaceFunc inputString )
+
+        let rec testRegexEachGeneration (inputRegex : string) = 
+            let newRegexParse = inputRegex |> runRegexGeneration
+            let newRegex = Regex(newRegexParse)
+
+            let entryMatchCount =
+                initialEntries
+                |> List.map (fun x ->
+                    if (newRegex.Match(x).Success) then 1 else 0
+                    )
+                |> List.sum
+
+            printfn "Matches: %i" entryMatchCount
+
+            //Console.ReadLine() |> ignore
+            testRegexEachGeneration newRegexParse
+
+        testRegexEachGeneration initialRegex
+            
+
 
     let updateMapForPart2 (initialMap : Map<int, Rule>) = 
         initialMap
@@ -174,6 +227,9 @@ module Main =
         let initialMap, initialEntries = parse fileInput
         let maxSize = initialEntries |> maxEntrySize
         let part2Map = initialMap |> updateMapForPart2
-        let combinations = findPossibleCombinations initialMap 0 maxSize initialEntries
+        //let combinations = findPossibleCombinations initialMap 0 maxSize initialEntries
+
+        iterateRegex initialMap 0 initialEntries |> ignore
         
-        printfn "%i" (sumEntriesAgainstSet combinations initialEntries)
+        //printfn "%i" (sumEntriesAgainstSet combinations initialEntries)
+        printfn "Test"
