@@ -123,12 +123,7 @@ module Main =
                                     acc
                                     |> accAddFunc orRules
                                 List.append firstSet orSet
-                        )
-                let updatedRules = 
-                    currentRuleList
-                    |> List.map explodeARuleList
-                    |> List.map flattenRules
-                    |> List.concat
+                        )                    
                 let checkForCompletedRuleSets (flattenedRules : Rule list list) = 
                     let splitByBeingComplete (listToCheck : Rule list) = 
                         listToCheck
@@ -156,7 +151,10 @@ module Main =
                         |> Set.union setOfCompletedBranches
                     setToReturn, listsToPass
                 let newSet, nextRules = 
-                    updatedRules
+                    currentRuleList
+                    |> List.map explodeARuleList
+                    |> List.map flattenRules
+                    |> List.concat
                     |> checkForCompletedRuleSets
                 createCombos2 (nextRules |> Set.ofList) newSet trimmedTooLongRules
 
@@ -176,6 +174,6 @@ module Main =
         let initialMap, initialEntries = parse fileInput
         let maxSize = initialEntries |> maxEntrySize
         let part2Map = initialMap |> updateMapForPart2
-        let combinations = findPossibleCombinations initialMap 0 maxSize initialEntries
+        let combinations = findPossibleCombinations part2Map 0 maxSize initialEntries
         
         printfn "%i" (sumEntriesAgainstSet combinations initialEntries)
