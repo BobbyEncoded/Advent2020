@@ -151,11 +151,10 @@ module Main =
         createCombos2 (initialRule |> List.singleton |> List.singleton) initialSet
 
     let sumEntriesAgainstSet (validCombinations : string Set) (inputEntries : string list) = 
+        let hashSetCombos = new System.Collections.Generic.HashSet<string>(validCombinations)
+        printfn "Num Combos: %i" (hashSetCombos.Count)
         inputEntries
-        |> List.map (fun x ->
-            validCombinations
-            |> Set.contains x
-            )
+        |> List.map hashSetCombos.Contains
         |> List.map (fun x -> if x then 1 else 0)
         |> List.sum
 
