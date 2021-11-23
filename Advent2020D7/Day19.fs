@@ -166,7 +166,7 @@ module Main =
             Rule.RuleCol{FirstRules = [42; 31]; OrRules = Some[42; 11; 31]} |> Some)
 
     let run : unit = 
-        let fileName = "Advent2020D19.txt"
+        let fileName = "Advent2020D19Test2.txt"
         let fileInput = Advent2020.File.listedLines fileName
         let initialMap, initialEntries = parse fileInput
         let maxSize = initialEntries |> maxEntrySize
