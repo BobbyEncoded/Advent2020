@@ -177,6 +177,35 @@ module Main =
                     ruleCol.FirstRules |> convertIntListToString
                 | Some orRules ->
                     "(" + (convertIntListToString ruleCol.FirstRules) + "|" + (convertIntListToString orRules) + ")"
+        
+        let regexLargeReplacements =
+            rules
+            |> Map.map (fun key value ->
+                createReplacementRegexFromMatch value
+                )
+            |> System.Collections.Generic.Dictionary
+
+        let regexMultipleReplace (textToReplace : string) = 
+            Regex.Replace(textToReplace, "(" + String.Join("|", regexLargeReplacements.Keys.ToArray()) + ")", (fun (m : Match) -> regexLargeReplacements[Int32.Parse(m.Value)]))
+
+        let rec testRegexEachGeneration (inputRegex : string) = 
+            let newRegexParse = inputRegex |> regexMultipleReplace
+            let newRegex = Regex(newRegexParse)
+
+            let entryMatchCount =
+                initialEntries
+                |> List.map (fun x ->
+                    if (newRegex.Match(x).Success) then 1 else 0
+                    )
+                |> List.sum
+
+            printfn "Matches: %i" entryMatchCount
+
+            //Console.ReadLine() |> ignore
+            testRegexEachGeneration newRegexParse
+
+        (*
+        //Old stuffs
         let initialRuleIndices = rules |> Map.keys |> (fun x -> x.ToList()) :> System.Collections.Generic.IEnumerable<int> |> Seq.cast<int> //Lotta bullmit to convert keys to a Sequence
         let replacementRegexFunctions = //Sequence of partially applied functions which just need the original string to pass along.
             initialRuleIndices
@@ -209,6 +238,7 @@ module Main =
 
             //Console.ReadLine() |> ignore
             testRegexEachGeneration newRegexParse
+        *)
 
         testRegexEachGeneration initialRegex
             
