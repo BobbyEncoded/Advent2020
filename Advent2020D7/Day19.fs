@@ -178,71 +178,51 @@ module Main =
                 | Some orRules ->
                     "(" + (convertIntListToString ruleCol.FirstRules) + "|" + (convertIntListToString orRules) + ")"
         
-        let regexLargeReplacements =
+        let keys, vals =
             rules
             |> Map.map (fun key value ->
                 createReplacementRegexFromMatch value
                 )
+            |> Map.toList
+            |> List.unzip
+
+        let newKeys = 
+            keys
+            |> List.map (fun x -> "(" + x.ToString() + ")")
+
+        let newKeysToMatch = 
+            keys
+            |> List.map (fun x -> "\\(" + x.ToString() + "\\)")
+
+        let regexLargeReplacements = 
+            (newKeys, vals)
+            ||> List.zip
+            |> Map.ofList
             |> System.Collections.Generic.Dictionary
 
         let regexMultipleReplace (textToReplace : string) = 
-            Regex.Replace(textToReplace, "(" + String.Join("|", regexLargeReplacements.Keys.ToArray()) + ")", (fun (m : Match) -> regexLargeReplacements[Int32.Parse(m.Value)]))
+            Regex.Replace(textToReplace, "(" + String.Join("|", newKeysToMatch) + ")", (fun (m : Match) -> regexLargeReplacements[m.Value]))
 
         let rec testRegexEachGeneration (inputRegex : string) = 
             let newRegexParse = inputRegex |> regexMultipleReplace
             let newRegex = Regex(newRegexParse)
 
+            
             let entryMatchCount =
                 initialEntries
                 |> List.map (fun x ->
                     if (newRegex.Match(x).Success) then 1 else 0
                     )
                 |> List.sum
-
-            printfn "Matches: %i" entryMatchCount
-
-            //Console.ReadLine() |> ignore
-            testRegexEachGeneration newRegexParse
-
-        (*
-        //Old stuffs
-        let initialRuleIndices = rules |> Map.keys |> (fun x -> x.ToList()) :> System.Collections.Generic.IEnumerable<int> |> Seq.cast<int> //Lotta bullmit to convert keys to a Sequence
-        let replacementRegexFunctions = //Sequence of partially applied functions which just need the original string to pass along.
-            initialRuleIndices
-            |> Seq.map (fun x ->
-                let replacementString = 
-                    x
-                    |> (General.flip Map.find) rules
-                    |> createReplacementRegexFromMatch
-                let newRegex = new Regex("("+x.ToString()+")")
-                let replacementRegexFunc (replacementString : string) (inputString : string) = newRegex.Replace(inputString, replacementString)
-                replacementRegexFunc replacementString
-                )
-        //This function will run a series of Regex replacements on a master regex to generate the new regex expression
-        let runRegexGeneration (inputRegexString : string) = 
-            (inputRegexString, replacementRegexFunctions)
-            ||> Seq.fold (fun inputString regexReplaceFunc -> regexReplaceFunc inputString )
-
-        let rec testRegexEachGeneration (inputRegex : string) = 
-            let newRegexParse = inputRegex |> runRegexGeneration
-            let newRegex = Regex(newRegexParse)
-
-            let entryMatchCount =
-                initialEntries
-                |> List.map (fun x ->
-                    if (newRegex.Match(x).Success) then 1 else 0
-                    )
-                |> List.sum
-
-            printfn "Matches: %i" entryMatchCount
-
-            //Console.ReadLine() |> ignore
-            testRegexEachGeneration newRegexParse
-        *)
-
-        testRegexEachGeneration initialRegex
             
 
+            printfn "Regex: %s" newRegexParse
+            printfn "Matches: %i" entryMatchCount
+
+            //Console.ReadLine() |> ignore
+            testRegexEachGeneration newRegexParse
+
+        testRegexEachGeneration initialRegex
 
     let updateMapForPart2 (initialMap : Map<int, Rule>) = 
         initialMap
@@ -255,8 +235,8 @@ module Main =
         let fileName = "Advent2020D19.txt"
         let fileInput = Advent2020.File.listedLines fileName
         let initialMap, initialEntries = parse fileInput
-        let maxSize = initialEntries |> maxEntrySize
-        let part2Map = initialMap |> updateMapForPart2
+        //let maxSize = initialEntries |> maxEntrySize
+        //let part2Map = initialMap |> updateMapForPart2
         //let combinations = findPossibleCombinations initialMap 0 maxSize initialEntries
 
         iterateRegex initialMap 0 initialEntries |> ignore
