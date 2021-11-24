@@ -76,6 +76,8 @@ module File =
 
 module General = 
 
+    exception Unresolvable of string
+
     let flip f a b = f b a
 
     let groupedStrings (rawInput : string list) : string list list = 
