@@ -34,7 +34,7 @@ type MaskMem =
         | Mem (x , _) -> MaskMem.convertUInt64ToBoolArray(x)
         | Mask _ -> raise (General.Unresolvable("Tried to get Val of a Mask type"))
 
-    static member private MaskAValue (inputMask : char array) (inputValue : bool array) = 
+    static member MaskAValue (inputMask : char array) (inputValue : bool array) = 
         let performOperationOnBit (inputChar : char) (inputBit : bool) = 
             match inputChar with
             | 'x' | 'X' -> inputBit
@@ -110,9 +110,70 @@ module Main =
 
         getSumOfMemory
 
+    let runInstructionsOnAddresses (inputInstructions : MaskMem list) = 
+        let memory = Map.empty<uint64, uint64>
+        let mostRecentMask = String.Empty |> Array.singleton
+        let createMemoryMasks (inputMaskString : string) : string array = 
+            let inputMaskArray = inputMaskString.ToCharArray()
+            let charArrayExploder (inputChar : char) = 
+                match inputChar with
+                | '1' -> [|'1'|]
+                | 'x' | 'X' -> [|'0';'1'|]
+                | '0' -> [|'S'|]
+                | _ -> raise (General.Unresolvable("Character in mask string wasn't a valid string"))
+            let charArrayCondenser (inputCharArrayArray : char array array) = 
+                let initialCharArrays = Array.empty<char> |> Array.singleton
+                (initialCharArrays, inputCharArrayArray)
+                ||> Array.fold (fun accStrings charsToEditWith ->
+                    let editAllCharArrays (accCharArrays : char array array) (inputChar : char array) = 
+                        accCharArrays
+                        |> Array.map (fun string -> Array.append string inputChar)
+
+                    match charsToEditWith.Length with
+                    | 1 -> editAllCharArrays accStrings charsToEditWith
+                    | 2 ->
+                        let firstArray = editAllCharArrays accStrings [|charsToEditWith.[0]|]
+                        let secondArray = editAllCharArrays accStrings [|charsToEditWith.[1]|]
+                        Array.append firstArray secondArray
+                    | _ -> raise (General.Unresolvable("Too many characters in an explosion."))
+                    )
+                |> Array.map (fun x -> x |> System.String)
+            inputMaskArray
+            |> Array.map charArrayExploder
+            |> charArrayCondenser
+            |> Array.map (fun x -> x.Replace('S','X'))
+
+        let instructionFolder (memAndMaskTuple : Map<uint64, uint64> * string array) (instructionToExecute : MaskMem) = 
+            let (mem, lastMask) = memAndMaskTuple
+            match instructionToExecute with
+            | Mask newMask -> (mem, newMask |> createMemoryMasks)
+            | Mem (address, valueToWrite) ->
+                let addressesToWriteTo = 
+                    lastMask
+                    |> Array.map (fun x -> MaskMem.convertBoolsToUInt64( MaskMem.MaskAValue (x.ToCharArray() |> Array.rev) (MaskMem.convertUInt64ToBoolArray(address))) )
+                let updatedMemory = 
+                    (mem, addressesToWriteTo)
+                    ||> Array.fold (fun mem address -> mem.Add(address, valueToWrite) )
+
+                (updatedMemory, lastMask)
+
+        let updatedMemory, _ = 
+            ((memory, mostRecentMask), inputInstructions)
+            ||> List.fold instructionFolder
+
+        let getSumOfMemory = 
+            let _, values = 
+                updatedMemory
+                |> Map.toList
+                |> List.unzip
+            values
+            |> List.sum
+
+        getSumOfMemory
+
     let run : unit = 
         let fileName = "Advent2020D14.txt"
         let fileInput = Advent2020.File.listedLines fileName
         let initialState = parse fileInput
 
-        printfn "Sum: %i" (runInstructionsInMemory(initialState))
+        printfn "Sum: %i" (runInstructionsOnAddresses(initialState))
