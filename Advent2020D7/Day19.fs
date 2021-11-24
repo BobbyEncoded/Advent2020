@@ -219,8 +219,9 @@ module Main =
             printfn "Regex: %s" newRegexParse
             printfn "Matches: %i" entryMatchCount
 
-            //Console.ReadLine() |> ignore
-            testRegexEachGeneration newRegexParse
+            match entryMatchCount with
+            | 316 -> entryMatchCount
+            | _ -> testRegexEachGeneration newRegexParse
 
         testRegexEachGeneration initialRegex
 
