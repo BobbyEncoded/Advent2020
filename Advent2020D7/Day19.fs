@@ -168,15 +168,19 @@ module Main =
             match inputRule with
             | Letter c -> c.ToString()
             | RuleCol ruleCol ->
-                let convertIntListToString (inputIntList : int list) : string = 
-                    inputIntList
-                    |> List.map (fun x -> "(" + x.ToString() + ")")
-                    |> String.concat ""
                 match ruleCol.OrRules with
-                | None ->
-                    ruleCol.FirstRules |> convertIntListToString
-                | Some orRules ->
-                    "(" + (convertIntListToString ruleCol.FirstRules) + "|" + (convertIntListToString orRules) + ")"
+                | Some [42; 8] -> "(((42))+)"
+                | Some [42; 11; 31] -> "(?<rule>(42))+(?<-rule>(31))+"
+                | _ ->
+                    let convertIntListToString (inputIntList : int list) : string = 
+                        inputIntList
+                        |> List.map (fun x -> "(" + x.ToString() + ")")
+                        |> String.concat ""
+                    match ruleCol.OrRules with
+                    | None ->
+                        ruleCol.FirstRules |> convertIntListToString
+                    | Some orRules ->
+                        "(" + (convertIntListToString ruleCol.FirstRules) + "|" + (convertIntListToString orRules) + ")"
         
         let keys, vals =
             rules
@@ -214,14 +218,17 @@ module Main =
                     if (newRegex.Match(x).Success) then 1 else 0
                     )
                 |> List.sum
-            
 
             printfn "Regex: %s" newRegexParse
             printfn "Matches: %i" entryMatchCount
 
-            match entryMatchCount with
-            | 316 -> entryMatchCount
-            | _ -> testRegexEachGeneration newRegexParse
+            let checkForNumbers : bool = 
+                let checkNumbersRegex = Regex.Match(newRegexParse, "\d")
+                checkNumbersRegex.Success
+
+            match checkForNumbers with
+            | false -> entryMatchCount
+            | true -> testRegexEachGeneration newRegexParse
 
         testRegexEachGeneration initialRegex
 
