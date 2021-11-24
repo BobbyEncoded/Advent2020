@@ -236,10 +236,10 @@ module Main =
         let fileInput = Advent2020.File.listedLines fileName
         let initialMap, initialEntries = parse fileInput
         //let maxSize = initialEntries |> maxEntrySize
-        //let part2Map = initialMap |> updateMapForPart2
+        let part2Map = initialMap |> updateMapForPart2
         //let combinations = findPossibleCombinations initialMap 0 maxSize initialEntries
 
-        iterateRegex initialMap 0 initialEntries |> ignore
+        iterateRegex part2Map 0 initialEntries |> ignore
         
         //printfn "%i" (sumEntriesAgainstSet combinations initialEntries)
         printfn "Test"
