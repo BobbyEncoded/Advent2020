@@ -125,8 +125,6 @@ module Main =
                     let searchForLeftNeighbor = shouldSearchForNeighbor tileToSearchForNeighbors.neighbors.leftNeighbor
 
                     //PrepForEdgeSearches
-
-
                     let tileMatchingFunction (searchForTile : bool) (edgesToMatchFunction : Edges -> Edges -> bool) = 
                         match searchForTile with
                         | false -> None
@@ -171,46 +169,6 @@ module Main =
                         let topEdgeEquivalenceFunction (thisTileEdges : Edges) (thatTileEdges : Edges) = 
                             thisTileEdges.TopEdge = thatTileEdges.BotEdge
                         tileMatchingFunction searchForTile topEdgeEquivalenceFunction
-                        (*
-                        match searchForTopNeighbor with
-                        | false -> None
-                        | true ->
-                            let topEdgeEquivalenceFunction (thisTileEdges : Edges) (thatTileEdges : Edges) = 
-                                thisTileEdges.TopEdge = thatTileEdges.BotEdge
-                            let foundTile = 
-                                tilesRemainingInMap
-                                |> Map.map (fun mapIndex mapTile ->
-                                    let matchedTile = 
-                                        [Orientation.Normal, mapTile; Orientation.Rot90, mapTile |> Rot90; Orientation.Rot180 mapTile |> Rot180; Orientation.Rot270, mapTile |> Rot270]
-                                        |> List.map (fun (orientation, tile) ->
-                                            let thisTileEdges = TileRotations.getEdgesFromTile tileToSearchForNeighbors.currentPixels
-                                            let thatTileEdges = TileRotations.getEdgesFromTile tile
-                                            let areSameSide = topEdgeEquivalenceFunction thisTileEdges thatTileEdges
-                                            match areSameSide with
-                                            | false -> None
-                                            | true -> Some(orientation, tile)
-                                            )
-                                        |> List.tryFind (fun matchingTile ->
-                                            match matchingTile with
-                                            | None -> false
-                                            | Some _ -> true
-                                            )
-                                    match matchedTile with
-                                    | None -> None
-                                    | Some foundTile ->
-                                        match foundTile with
-                                        | None -> None
-                                        | Some (foundTileOrientation, foundTileData) -> Some (mapIndex, foundTileOrientation, foundTileData)
-                                    )
-                                |> Map.toList
-                                |> List.find (fun (_, foundTile) ->
-                                    match foundTile with
-                                    | None -> false
-                                    | Some _ -> true
-                                    )
-                                |> snd
-                            foundTile
-                            *)
 
     let run : unit = 
         let fileName = "Advent2020D20Test.txt"
