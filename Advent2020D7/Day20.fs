@@ -162,12 +162,26 @@ module Main =
                                     )
                                 |> snd
                             foundTile
-
-                    //This function tries to find a tile, and returns data about the find tile if it finds one.
+                    //This function tries to find a tile, and returns data about the found tile if it finds one.
                     let topNeighborSearch = 
                         let searchForTile = searchForTopNeighbor
                         let topEdgeEquivalenceFunction (thisTileEdges : Edges) (thatTileEdges : Edges) = 
                             thisTileEdges.TopEdge = thatTileEdges.BotEdge
+                        tileMatchingFunction searchForTile topEdgeEquivalenceFunction
+                    let rightNeighborSearch = 
+                        let searchForTile = searchForRightNeighbor
+                        let rightEdgeEquivalenceFunction (thisTileEdges : Edges) (thatTileEdges : Edges) = 
+                            thisTileEdges.RightEdge = thatTileEdges.LeftEdge
+                        tileMatchingFunction searchForTile topEdgeEquivalenceFunction
+                    let botNeighborSearch = 
+                        let searchForTile = searchForBotNeighbor
+                        let botEdgeEquivalenceFunction (thisTileEdges : Edges) (thatTileEdges : Edges) = 
+                            thisTileEdges.BotEdge = thatTileEdges.TopEdge
+                        tileMatchingFunction searchForTile topEdgeEquivalenceFunction
+                    let leftNeighborSearch = 
+                        let searchForTile = searchForTLeftNeighbor
+                        let leftEdgeEquivalenceFunction (thisTileEdges : Edges) (thatTileEdges : Edges) = 
+                            thisTileEdges.LeftEdge = thatTileEdges.RightEdge
                         tileMatchingFunction searchForTile topEdgeEquivalenceFunction
 
     let run : unit = 
