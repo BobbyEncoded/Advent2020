@@ -111,6 +111,7 @@ module Main =
             let tilesRemainingInMap = 
                 //Can update this so that the map stays recursive and we don't have to remove everything every time we go through the rec func.
                 (inputTileMap, tilesInGrid) ||> List.fold (fun accMap tile -> accMap |> Map.remove tile.tileNum)
+            //Stop condition
             match tilesRemainingToFind with
             | 0 -> tilesInGrid
             | _ ->
@@ -124,7 +125,7 @@ module Main =
                     let searchForBotNeighbor = shouldSearchForNeighbor tileToSearchForNeighbors.neighbors.botNeighbor
                     let searchForLeftNeighbor = shouldSearchForNeighbor tileToSearchForNeighbors.neighbors.leftNeighbor
 
-                    //PrepForEdgeSearches
+                    //Search for tiles for each edge
                     let tileMatchingFunction (searchForTile : bool) (edgesToMatchFunction : Edges -> Edges -> bool) = 
                         match searchForTile with
                         | false -> None
@@ -179,10 +180,15 @@ module Main =
                             thisTileEdges.BotEdge = thatTileEdges.TopEdge
                         tileMatchingFunction searchForTile topEdgeEquivalenceFunction
                     let leftNeighborSearch = 
-                        let searchForTile = searchForTLeftNeighbor
+                        let searchForTile = searchForLeftNeighbor
                         let leftEdgeEquivalenceFunction (thisTileEdges : Edges) (thatTileEdges : Edges) = 
                             thisTileEdges.LeftEdge = thatTileEdges.RightEdge
-                        tileMatchingFunction searchForTile topEdgeEquivalenceFunction
+                        tileMatchingFunction searchForTile leftEdgeEquivalenceFunction
+
+                    //Generate a tile in grid for each tile found, including its position.  Pass it back as a list of tiles to add to the main list.
+                    //Figure out how to handle duplicate tiles appearing in the master list.
+                    //Take that final list, and update all the tiles with their appropriate neighbors based on position.
+                    //Then recur the function.
 
     let run : unit = 
         let fileName = "Advent2020D20Test.txt"
