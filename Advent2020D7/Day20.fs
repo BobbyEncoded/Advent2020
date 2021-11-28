@@ -102,7 +102,7 @@ module Main =
     let findCornerTiles (inputTileMap : Map<int,bool[,]>) = 
         let firstTile = inputTileMap |> Map.toSeq |> Seq.head
         let convertFirstTileToTileInGrid (tileID : int, inputTileData : bool[,]) = 
-            let firstTileNeighbors = Neighbors{topNeighbor = None; rightNeighbor = None; botNeighbor = None; leftNeighbor = None}
+            let firstTileNeighbors = {topNeighbor = None; rightNeighbor = None; botNeighbor = None; leftNeighbor = None}
             {tileNum = tileID; orientation = Orientation.Normal; posX = 0; posY = 0; currentPixels = inputTileData; neighbors = firstTileNeighbors}
         let firstTileInGrid = [firstTile |> convertFirstTileToTileInGrid]
 
@@ -134,7 +134,7 @@ module Main =
                                 tilesRemainingInMap
                                 |> Map.map (fun mapIndex mapTile ->
                                     let matchedTile = 
-                                        [Orientation.Normal, mapTile; Orientation.Rot90, mapTile |> Rot90; Orientation.Rot180 mapTile |> Rot180; Orientation.Rot270, mapTile |> Rot270]
+                                        [Orientation.Normal, mapTile; Orientation.Rot90, mapTile |> TileRotations.rot90; Orientation.Rot180, mapTile |> TileRotations.rot180; Orientation.Rot270, mapTile |> TileRotations.rot270]
                                         |> List.map (fun (orientation, tile) ->
                                             let thisTileEdges = TileRotations.getEdgesFromTile tileToSearchForNeighbors.currentPixels
                                             let thatTileEdges = TileRotations.getEdgesFromTile tile
@@ -156,39 +156,84 @@ module Main =
                                         | Some (foundTileOrientation, foundTileData) -> Some (mapIndex, foundTileOrientation, foundTileData)
                                     )
                                 |> Map.toList
-                                |> List.find (fun (_, foundTile) ->
+                                |> List.tryFind (fun (_, foundTile) ->
                                     match foundTile with
                                     | None -> false
                                     | Some _ -> true
                                     )
-                                |> snd
+                                |> Option.bind snd
                             foundTile
+                    let convertTileMatchingFunction (dxy : int * int) (inputTileMatch : (int * Orientation * bool[,])) = 
+                        match inputTileMatch with |id, orientation, data ->
+                        match dxy with |dx, dy ->
+                            let neighbors = {topNeighbor = None; rightNeighbor = None; botNeighbor = None; leftNeighbor = None}
+                            {tileNum = id; orientation = orientation; currentPixels = data; posX = tileToSearchForNeighbors.posX + dx; posY = tileToSearchForNeighbors.posY + dy; neighbors = neighbors}
                     //This function tries to find a tile, and returns data about the found tile if it finds one.
                     let topNeighborSearch = 
                         let searchForTile = searchForTopNeighbor
                         let topEdgeEquivalenceFunction (thisTileEdges : Edges) (thatTileEdges : Edges) = 
                             thisTileEdges.TopEdge = thatTileEdges.BotEdge
                         tileMatchingFunction searchForTile topEdgeEquivalenceFunction
+                        |> Option.map (convertTileMatchingFunction (0,1))
                     let rightNeighborSearch = 
                         let searchForTile = searchForRightNeighbor
                         let rightEdgeEquivalenceFunction (thisTileEdges : Edges) (thatTileEdges : Edges) = 
                             thisTileEdges.RightEdge = thatTileEdges.LeftEdge
-                        tileMatchingFunction searchForTile topEdgeEquivalenceFunction
+                        tileMatchingFunction searchForTile rightEdgeEquivalenceFunction
+                        |> Option.map (convertTileMatchingFunction (1,0))
                     let botNeighborSearch = 
                         let searchForTile = searchForBotNeighbor
                         let botEdgeEquivalenceFunction (thisTileEdges : Edges) (thatTileEdges : Edges) = 
                             thisTileEdges.BotEdge = thatTileEdges.TopEdge
-                        tileMatchingFunction searchForTile topEdgeEquivalenceFunction
+                        tileMatchingFunction searchForTile botEdgeEquivalenceFunction
+                        |> Option.map (convertTileMatchingFunction (0,-1))
                     let leftNeighborSearch = 
                         let searchForTile = searchForLeftNeighbor
                         let leftEdgeEquivalenceFunction (thisTileEdges : Edges) (thatTileEdges : Edges) = 
                             thisTileEdges.LeftEdge = thatTileEdges.RightEdge
                         tileMatchingFunction searchForTile leftEdgeEquivalenceFunction
+                        |> Option.map (convertTileMatchingFunction (-1,0))
+                    [topNeighborSearch; rightNeighborSearch; botNeighborSearch; leftNeighborSearch]
 
-                    //Generate a tile in grid for each tile found, including its position.  Pass it back as a list of tiles to add to the main list.
-                    //Figure out how to handle duplicate tiles appearing in the master list.
-                    //Take that final list, and update all the tiles with their appropriate neighbors based on position.
-                    //Then recur the function.
+                //Generate a tile in grid for each tile found, including its position.  Pass it back as a list of tiles to add to the main list.
+                //Figure out how to handle duplicate tiles appearing in the master list.
+                //Take that final list, and update all the tiles with their appropriate neighbors based on position.
+                //Then recur the function.
+                let tilesToAdd =
+                    tilesInGrid
+                    |> List.map searchATileForNeighbors
+                    |> List.concat
+                    |> List.choose id
+
+                let getTileMapFromTileInGridList (tileInGridList : TileInGrid list) = 
+                    tileInGridList |> List.map (fun x -> (x.posX, x.posY), x) |> Map.ofList
+
+                let removeDuplicatesAndConglomerate = 
+                    let tilesInGridMap = getTileMapFromTileInGridList tilesInGrid
+                    (tilesInGridMap, tilesToAdd)
+                    ||> List.fold (fun tileMap tileToAdd -> tileMap |> Map.add (tileToAdd.posX, tileToAdd.posY) tileToAdd)
+                    |> Map.toList
+                    |> List.map snd
+
+                let updateNeighbors (tileInGridList : TileInGrid list) = 
+                    let tileMap = getTileMapFromTileInGridList tilesInGrid
+                    tileInGridList
+                    |> List.map (fun x ->
+                        let topNeighbor = tileMap |> Map.tryFind (x.posX, x.posY + 1) |> Option.map (fun x -> x.tileNum)
+                        let rightNeighbor = tileMap |> Map.tryFind (x.posX + 1, x.posY) |> Option.map (fun x -> x.tileNum)
+                        let botNeighbor = tileMap |> Map.tryFind (x.posX, x.posY - 1) |> Option.map (fun x -> x.tileNum)
+                        let leftNeighbor = tileMap |> Map.tryFind (x.posX - 1, x.posY) |> Option.map (fun x -> x.tileNum)
+                        let neighbors = {topNeighbor = topNeighbor; rightNeighbor = rightNeighbor; botNeighbor = botNeighbor; leftNeighbor = leftNeighbor}
+                        {tileNum = x.tileNum; orientation = x.orientation; posX = x.posX; posY = x.posY; currentPixels = x.currentPixels; neighbors = neighbors}
+                        )
+
+                let newTiles = updateNeighbors removeDuplicatesAndConglomerate
+
+                findConnectingTiles newTiles
+
+        let matchedTiles = findConnectingTiles firstTileInGrid
+        printfn "%A" matchedTiles
+
 
     let run : unit = 
         let fileName = "Advent2020D20Test.txt"
@@ -202,5 +247,7 @@ module Main =
         let rot90Tile = sampleTile |> TileRotations.rot90
         let rot180Tile = sampleTile |> TileRotations.rot180
         let rot270Tile = sampleTile |> TileRotations.rot270
+
+        findCornerTiles initialState
 
         printfn "Test"
