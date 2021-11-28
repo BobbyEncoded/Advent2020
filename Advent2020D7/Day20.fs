@@ -263,6 +263,45 @@ module Main =
             |> List.find (fun t -> (((widthMin + x) = t.posX) && ((heightMin + y) = t.posY)))
         Array2D.init width height getTileFromCoords
 
+    let trimTile (inputTile : TileInGrid) : TileInGrid =
+        let width, height = inputTile.currentPixels |> TileRotations.getSideAndTopLength
+        let newWidth = width - 2
+        let newHeight = height - 2
+        let newData = Array2D.init newWidth newHeight (fun x y -> inputTile.currentPixels[x+1,y+1])
+        {inputTile with currentPixels = newData}
+
+    let getLargeImage (inputTiles : TileInGrid[,]) = 
+        let bigWidth = inputTiles |> Array2D.length1
+        let bigHeight = inputTiles |> Array2D.length2
+        let selectTile = inputTiles.[0,0]
+        let width = selectTile.currentPixels |> Array2D.length1
+        let height = selectTile.currentPixels |> Array2D.length2
+        let newWidth = width * bigWidth
+        let newHeight = height * bigHeight
+        let arrangeImage (x : int) (y : int) =
+            let bigTileIntervalX, inTileIntervalX = Math.DivRem (x, width)
+            let bigTileIntervalY, inTileIntervalY = Math.DivRem (y, height)
+            inputTiles.[bigTileIntervalX,bigTileIntervalY].currentPixels.[inTileIntervalX,inTileIntervalY]
+        Array2D.init newWidth newHeight arrangeImage
+
+    let convertBoolToPixels (inputBool : bool) : char = 
+        if inputBool then '#' else '.'
+
+    let seaDragon = 
+        [
+        @"                  # ";
+        @"#    ##    ##    ###";
+        @" #  #  #  #  #  #   "]
+
+
+    let countSeaMonsters (pixelMap : bool[,]) = 
+        let checkForSeaDragon (x : int) (y : int) =
+            pixelMap |> Array2D.
+        pixelMap
+        |> Array2D.mapi (fun x y pixelVal ->
+            
+            )
+
     let run : unit = 
         let fileName = "Advent2020D20.txt"
         let fileInput = Advent2020.File.listedLines fileName
@@ -270,6 +309,20 @@ module Main =
 
         let tileCombos = initialState |> findTileCombo
         let tileArray = tileCombos |> convertTileCombosToArray
+        let trimmedTileArray = tileArray |> Array2D.map trimTile
+        let bigImage = trimmedTileArray |> getLargeImage
+
+        let allImages =
+            [bigImage;
+            bigImage |> TileRotations.rot90;
+            bigImage |> TileRotations.rot180;
+            bigImage |> TileRotations.rot270;
+            bigImage |> TileRotations.flip;
+            bigImage |> TileRotations.flipRot90;
+            bigImage |> TileRotations.flipRot180;
+            bigImage |> TileRotations.flipRot270;]
+
+        printfn "%A" (bigImage |> Array2D.map convertBoolToPixels)
 
         let arrayWidth, arrayHeight = tileArray |> TileRotations.getSideAndTopLength
 
