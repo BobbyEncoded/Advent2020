@@ -56,6 +56,18 @@ module List =
                     product newState tail
             product head tail
 
+    let productInt (list : int list) : int64 = 
+        match list with
+        | [] -> 0L
+        | head::tail -> 
+            let rec product (state : int64) (remainingList : int list) = 
+                match remainingList with 
+                | [] -> state
+                | head::tail ->
+                    let newState = state * (head |> int64)
+                    product newState tail
+            product head tail
+
 module File =
 
     let userProfile = Environment.GetEnvironmentVariable("USERPROFILE")

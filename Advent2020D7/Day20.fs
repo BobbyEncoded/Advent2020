@@ -49,9 +49,9 @@ module private TileRotations =
         let botEdge = inputTile[*, rightEdge.Length - 1]
         {TopEdge = topEdge; RightEdge = rightEdge; BotEdge = botEdge; LeftEdge = leftEdge}
 
-    let getSideAndTopLength (inputTile : bool[,]) : int * int = 
-        let topSize = inputTile[0, *] |> Array.length
-        let sideSize = inputTile[*, 0] |> Array.length
+    let getSideAndTopLength (inputArray : 'T[,]) : int * int = 
+        let topSize = inputArray[0, *] |> Array.length
+        let sideSize = inputArray[*, 0] |> Array.length
         sideSize, topSize
 
     let rot90 (inputTile : bool[,]) : bool[,] =
@@ -97,7 +97,6 @@ module Main =
                     tileChars[y][x] //This makes x the first column and y the second column
                 Array2D.init 10 10 initializer
 
-                
             let boolArray = 
                 TileChars2D
                 |> Array2D.map (fun (c : char) ->
@@ -111,7 +110,7 @@ module Main =
             )
         |> Map.ofList
 
-    let findCornerTiles (inputTileMap : Map<int,bool[,]>) = 
+    let findTileCombo (inputTileMap : Map<int,bool[,]>) = 
         let firstTile = inputTileMap |> Map.toSeq |> Seq.head
         let convertFirstTileToTileInGrid (tileID : int, inputTileData : bool[,]) = 
             let firstTileNeighbors = {topNeighbor = None; rightNeighbor = None; botNeighbor = None; leftNeighbor = None}
@@ -250,23 +249,39 @@ module Main =
 
                 findConnectingTiles newTiles
 
-        let matchedTiles = findConnectingTiles firstTileInGrid
-        printfn "%A" matchedTiles
+        findConnectingTiles firstTileInGrid
 
+    let convertTileCombosToArray (positionedTiles : TileInGrid list) : TileInGrid[,] =
+        let widthMin = positionedTiles |> List.minBy (fun t -> t.posX) |> (fun t -> t.posX)
+        let widthMax = positionedTiles |> List.maxBy (fun t -> t.posX) |> (fun t -> t.posX)
+        let heightMin = positionedTiles |> List.minBy (fun t -> t.posY) |> (fun t -> t.posY)
+        let heightMax = positionedTiles |> List.maxBy (fun t -> t.posY) |> (fun t -> t.posY)
+        let width = (widthMax - widthMin) + 1
+        let height = (heightMax - heightMin) + 1
+        let getTileFromCoords (x : int) (y : int) = 
+            positionedTiles
+            |> List.find (fun t -> (((widthMin + x) = t.posX) && ((heightMin + y) = t.posY)))
+        Array2D.init width height getTileFromCoords
 
     let run : unit = 
-        let fileName = "Advent2020D20Test.txt"
+        let fileName = "Advent2020D20.txt"
         let fileInput = Advent2020.File.listedLines fileName
         let initialState = parse fileInput
 
-        let sampleTile = 
-            initialState
-            |> Map.find 1171
+        let tileCombos = initialState |> findTileCombo
+        let tileArray = tileCombos |> convertTileCombosToArray
 
-        let rot90Tile = sampleTile |> TileRotations.rot90
-        let rot180Tile = sampleTile |> TileRotations.rot180
-        let rot270Tile = sampleTile |> TileRotations.rot270
+        let arrayWidth, arrayHeight = tileArray |> TileRotations.getSideAndTopLength
 
-        findCornerTiles initialState
+        let corner0 = tileArray[0,0] |> (fun t -> t.tileNum)
+        let corner1 = tileArray[0,arrayHeight - 1] |> (fun t -> t.tileNum)
+        let corner2 = tileArray[arrayWidth - 1,0] |> (fun t -> t.tileNum)
+        let corner3 = tileArray[arrayWidth - 1,arrayHeight - 1] |> (fun t -> t.tileNum)
+        let corners = [corner0; corner1; corner2; corner3]
+
+        //printfn "%A" (tileCombos)
+        printfn "Corners: %A" corners
+
+        printfn "Product: %i" (corners |> List.productInt)
 
         printfn "Test"
