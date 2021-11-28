@@ -25,6 +25,10 @@ type Orientation =
     | Rot90
     | Rot180
     | Rot270
+    | Flip
+    | FlipRot90
+    | FlipRot180
+    | FlipRot270
 //Describes a tile in the major grid.
 type TileInGrid =
     {
@@ -52,7 +56,7 @@ module private TileRotations =
 
     let rot90 (inputTile : bool[,]) : bool[,] =
         let sideLength, topLength = getSideAndTopLength inputTile
-        Array2D.init sideLength topLength (fun x y -> inputTile[y, (sideLength-1)-x])
+        Array2D.init topLength sideLength (fun x y -> inputTile[y, (sideLength-1)-x])
 
     let rot180 (inputTile : bool[,]) = 
         let sideLength, topLength = getSideAndTopLength inputTile
@@ -60,7 +64,15 @@ module private TileRotations =
 
     let rot270 (inputTile : bool[,]) : bool[,] =
         let sideLength, topLength = getSideAndTopLength inputTile
-        Array2D.init sideLength topLength (fun x y -> inputTile[(sideLength-1)-y, x])
+        Array2D.init topLength sideLength (fun x y -> inputTile[(sideLength-1)-y, x])
+
+    let flip (inputTile : bool[,]) : bool[,] =
+        let sideLength, topLength = getSideAndTopLength inputTile
+        Array2D.init sideLength topLength (fun x y -> inputTile[(sideLength-1)-x, y])
+
+    let flipRot90 = flip >> rot90
+    let flipRot180 = flip >> rot180
+    let flipRot270 = flip >> rot270
 
 module Main =
 
@@ -134,7 +146,14 @@ module Main =
                                 tilesRemainingInMap
                                 |> Map.map (fun mapIndex mapTile ->
                                     let matchedTile = 
-                                        [Orientation.Normal, mapTile; Orientation.Rot90, mapTile |> TileRotations.rot90; Orientation.Rot180, mapTile |> TileRotations.rot180; Orientation.Rot270, mapTile |> TileRotations.rot270]
+                                        [Orientation.Normal, mapTile;
+                                        Orientation.Rot90, mapTile |> TileRotations.rot90;
+                                        Orientation.Rot180, mapTile |> TileRotations.rot180;
+                                        Orientation.Rot270, mapTile |> TileRotations.rot270;
+                                        Orientation.Flip, mapTile |> TileRotations.flip;
+                                        Orientation.FlipRot90, mapTile |> TileRotations.flipRot90;
+                                        Orientation.FlipRot180, mapTile |> TileRotations.flipRot180;
+                                        Orientation.FlipRot270, mapTile |> TileRotations.flipRot270;]
                                         |> List.map (fun (orientation, tile) ->
                                             let thisTileEdges = TileRotations.getEdgesFromTile tileToSearchForNeighbors.currentPixels
                                             let thatTileEdges = TileRotations.getEdgesFromTile tile
