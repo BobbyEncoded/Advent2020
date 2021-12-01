@@ -258,7 +258,7 @@ module Main =
         let heightMax = positionedTiles |> List.maxBy (fun t -> t.posY) |> (fun t -> t.posY)
 
         let topLeftTile = positionedTiles |> List.find (fun i -> (i.neighbors.topNeighbor = None) && (i.neighbors.leftNeighbor = None)) //This is the 0,0 tile.  increase in x is the next right tile, increase in y is the next bot tile.
-        let arrayOfTilesGoingRight = 
+        let listOfTilesGoingRight = 
             let rec makeListToRight (currentListOfTiles : TileInGrid list) (nextTile : int) =
                 let newTileInGrid = positionedTiles |> List.find (fun t -> t.tileNum = nextTile)
                 let newListOfTiles =  newTileInGrid |> List.singleton |> List.append currentListOfTiles
@@ -267,15 +267,19 @@ module Main =
                 | None -> newListOfTiles
                 | Some nextTile -> makeListToRight newListOfTiles nextTile
             makeListToRight [] topLeftTile.tileNum
-            |> Array.ofList
-
-
+        let listOfAllTiles =
+            let rec makeListGoDown (currentListOfTiles : TileInGrid list list) (nextArrayOfTiles : int list) =
+                let listOfNewTileInGrid = nextArrayOfTiles |> List.map (fun newTile -> positionedTiles |> List.find (fun t -> t.tileNum = newTile))
+                let newListListOfTiles = listOfNewTileInGrid |> List.singleton |> List.append currentListOfTiles
+                let nextTiles = listOfNewTileInGrid |> List.map (fun t -> t.neighbors.botNeighbor)
+                let traversedNextTiles = Option.sequenceList nextTiles
+                match traversedNextTiles with
+                | None -> newListListOfTiles
+                | Some traversedNextTiles -> makeListGoDown newListListOfTiles traversedNextTiles
+            makeListGoDown [[]] (listOfTilesGoingRight |> List.map (fun t -> t.tileNum))
         let width = (widthMax - widthMin) + 1
         let height = (heightMax - heightMin) + 1
-        let getTileFromCoords (x : int) (y : int) = 
-            positionedTiles
-            |> List.find (fun t -> (((widthMin + x) = t.posX) && ((heightMin + y) = t.posY)))
-        Array2D.init width height getTileFromCoords
+        Array2D.init width height (fun x y -> listOfAllTiles |> (List.item y) |> (List.item x))
 
     let trimTile (inputTile : TileInGrid) : TileInGrid =
         let width, height = inputTile.currentPixels |> TileRotations.getSideAndTopLength
