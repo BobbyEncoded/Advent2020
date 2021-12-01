@@ -256,6 +256,20 @@ module Main =
         let widthMax = positionedTiles |> List.maxBy (fun t -> t.posX) |> (fun t -> t.posX)
         let heightMin = positionedTiles |> List.minBy (fun t -> t.posY) |> (fun t -> t.posY)
         let heightMax = positionedTiles |> List.maxBy (fun t -> t.posY) |> (fun t -> t.posY)
+
+        let topLeftTile = positionedTiles |> List.find (fun i -> (i.neighbors.topNeighbor = None) && (i.neighbors.leftNeighbor = None)) //This is the 0,0 tile.  increase in x is the next right tile, increase in y is the next bot tile.
+        let arrayOfTilesGoingRight = 
+            let rec makeListToRight (currentListOfTiles : TileInGrid list) (nextTile : int) =
+                let newTileInGrid = positionedTiles |> List.find (fun t -> t.tileNum = nextTile)
+                let newListOfTiles =  newTileInGrid |> List.singleton |> List.append currentListOfTiles
+                let nextTile = newTileInGrid.neighbors.rightNeighbor
+                match nextTile with
+                | None -> newListOfTiles
+                | Some nextTile -> makeListToRight newListOfTiles nextTile
+            makeListToRight [] topLeftTile.tileNum
+            |> Array.ofList
+
+
         let width = (widthMax - widthMin) + 1
         let height = (heightMax - heightMin) + 1
         let getTileFromCoords (x : int) (y : int) = 
@@ -287,23 +301,57 @@ module Main =
     let convertBoolToPixels (inputBool : bool) : char = 
         if inputBool then '#' else '.'
 
+    let count2DArray (inputArray : int[,]) = 
+        let splitArray = seq {for i in 0 .. ((inputArray |> Array2D.length1) - 1) do yield inputArray[i,*]}
+        splitArray
+        |> Seq.map List.ofArray
+        |> List.concat
+        |> List.sum
+
     let seaDragon = 
         [
         @"                  # ";
         @"#    ##    ##    ###";
         @" #  #  #  #  #  #   "]
 
-
     let countSeaMonsters (pixelMap : bool[,]) = 
-        let checkForSeaDragon (x : int) (y : int) =
-            pixelMap |> Array2D.
+        let checkForSeaDragon (x : int) (y : int) (startingSpace : bool) =
+            let length1 = pixelMap |> Array2D.length1
+            let length2 = pixelMap |> Array2D.length2
+            let seaDragonComponentFind (x: int) (y : int) f =
+                match pixelMap.[x,y] with
+                | false -> false
+                | true -> f
+            match x with
+            | x when x > length1 - 20 -> false
+            | x ->
+                match y with
+                | y when y >= length2 - 1 -> false
+                | y when y < 1 -> false
+                | y ->
+                    true
+                    |> seaDragonComponentFind (x+0) (y+0)
+                    |> seaDragonComponentFind (x+1) (y+1)
+                    |> seaDragonComponentFind (x+4) (y+1)
+                    |> seaDragonComponentFind (x+5) (y+0)
+                    |> seaDragonComponentFind (x+6) (y+0)
+                    |> seaDragonComponentFind (x+7) (y+1)
+                    |> seaDragonComponentFind (x+10) (y+1)
+                    |> seaDragonComponentFind (x+11) (y+0)
+                    |> seaDragonComponentFind (x+12) (y+0)
+                    |> seaDragonComponentFind (x+13) (y+1)
+                    |> seaDragonComponentFind (x+16) (y+1)
+                    |> seaDragonComponentFind (x+17) (y+0)
+                    |> seaDragonComponentFind (x+18) (y-1)
+                    |> seaDragonComponentFind (x+19) (y+0)
+
         pixelMap
-        |> Array2D.mapi (fun x y pixelVal ->
-            
-            )
+        |> Array2D.mapi checkForSeaDragon
+        |> Array2D.map (fun i -> if i then 1 else 0)
+        |> count2DArray
 
     let run : unit = 
-        let fileName = "Advent2020D20.txt"
+        let fileName = "Advent2020D20Test.txt"
         let fileInput = Advent2020.File.listedLines fileName
         let initialState = parse fileInput
 
@@ -322,7 +370,15 @@ module Main =
             bigImage |> TileRotations.flipRot180;
             bigImage |> TileRotations.flipRot270;]
 
+        let seaDragonsInImages = 
+            allImages
+            |> List.map countSeaMonsters
+            |> List.max
+
+        let pixelCount = bigImage |> Array2D.map (fun i -> if i then 1 else 0) |> count2DArray
+
         printfn "%A" (bigImage |> Array2D.map convertBoolToPixels)
+        printfn "Pixels Not Seadragoned: %i" (pixelCount - (seaDragonsInImages * 15))
 
         let arrayWidth, arrayHeight = tileArray |> TileRotations.getSideAndTopLength
 
