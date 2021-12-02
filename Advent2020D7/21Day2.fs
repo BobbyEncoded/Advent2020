@@ -14,7 +14,7 @@ type Position =
     {
         horPos : int
         depth : int
-
+        aim : int
     }
 
 module Main =
@@ -32,12 +32,12 @@ module Main =
             )
 
     let part1 (initInsts : SubInstruction list) = 
-        let initPos = {horPos = 0; depth = 0}
+        let initPos = {horPos = 0; depth = 0; aim = 0}
         let instructionRunner (inputPos : Position) (currentInstruction : SubInstruction) =
             match currentInstruction with
-            | Forward i -> {inputPos with horPos = inputPos.horPos + i}
-            | Down i -> {inputPos with depth = inputPos.depth + i}
-            | Up i -> {inputPos with depth = inputPos.depth - i}
+            | Forward i -> {inputPos with horPos = inputPos.horPos + i; depth = inputPos.depth + (i * inputPos.aim)}
+            | Down i -> {inputPos with aim = inputPos.aim + i}
+            | Up i -> {inputPos with aim = inputPos.aim - i}
         (initPos, initInsts)
         ||> List.fold instructionRunner
 
