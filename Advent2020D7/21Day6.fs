@@ -5,12 +5,6 @@ open Advent2020 //Contains Range type and accessors
 open System.Text.RegularExpressions //Allows usage of Regular Expressions
 open System.Linq
 
-type LanternDay =
-    {
-        DaysRemaining : int8
-        Count : uint64
-    }
-
 module Main =
 
     let parse (fileInput : string list) =
@@ -52,6 +46,7 @@ module Main =
         let fileInput = Advent2020.File.listedLines fileName
         let initialState = parse fileInput
 
-        let finalFish = initialState |> runFish 80 |> sumFish
+        let finalFishPart1 = initialState |> runFish 80 |> sumFish
+        let finalFishPart2 = initialState |> runFish 256 |> sumFish
         
-        printfn "%i" finalFish
+        printfn "%i" finalFishPart2
